@@ -3,7 +3,7 @@
 students = {
     "ALI":65,
     "SARA":82,
-    "RAVI":45,
+    "RAVI":38,
     "MEENA":74,
     "JOHN":41
 }
