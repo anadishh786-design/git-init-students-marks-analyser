@@ -7,6 +7,7 @@ Validates marks
 Ignores invalid rows
 Calculates average
 Finds highest scorer
+count fail & pass students
 Supports decimal marks
 Test Cases
 Test 1: Exactly 40
