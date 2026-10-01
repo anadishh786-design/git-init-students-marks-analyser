@@ -11,7 +11,7 @@ with open("students.csv", newline="") as file:
         marks = row["marks"].strip()
 
         try:
-            marks = int(marks)
+            marks = float(marks)
 
             if marks < 0 or marks > 100:
                 raise ValueError
