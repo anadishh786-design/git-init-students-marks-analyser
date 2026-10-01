@@ -1,9 +1,6 @@
-# CSV Student Results
-
-## How to Run
-
-```bash
-python main.py
+#module-2-csv marks
+## run instructions
+#python main.py
 Features
 Reads student data from CSV
 Validates marks
