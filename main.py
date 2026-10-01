@@ -40,7 +40,7 @@ print("\nSummary")
 print("-" * 30)
 print(f"Valid rows: {valid_count}")
 print(f"Invalid rows: {invalid_count}")
-pprint(f"Pass: {pass_count}")
+print(f"Pass: {pass_count}")
 print(f"Fail: {fail_count}")
 
 
