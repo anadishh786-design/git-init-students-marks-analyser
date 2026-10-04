@@ -116,7 +116,7 @@ python -m unittest -v
 Example output:
 
 ```text
-Ran 17 tests
+Ran 20 tests
 
 OK
 ```
@@ -161,6 +161,8 @@ The automated tests verify:
 
 - Summary information is displayed correctly
 - Key output values are tested
+- future improvements
+- 
 
 
 ```
