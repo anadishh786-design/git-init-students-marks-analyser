@@ -147,6 +147,7 @@ The automated tests verify:
 
 - Pass count
 - Fail count
+- valid rows count
 - Average mark calculation
 - Highest scorer detection
 - No valid records handling
