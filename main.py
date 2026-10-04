@@ -148,7 +148,7 @@ def display_results(*args):
 def main():
     students, invalid_rows = read_csv("students.csv")
     summary = calculate_summary(students)
-    display_results(summary, invalid_rows)
+    display_results(students,summary, invalid_rows)
 
 
 if __name__ == "__main__":
