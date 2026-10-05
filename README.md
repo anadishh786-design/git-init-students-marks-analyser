@@ -93,14 +93,25 @@ Example output:
 ```text
 Student Results
 ---------------
-Alice : 82.5 - Pass
-Bob : 39.0 - Fail
+Ali : 65.0 - Pass
+Sara : 82.0 - Pass
+Ravi : 45.0 - Pass
+Meena : 74.0 - Pass
+John : 41.0 - Pass
+ali2 : 33.0 - Fail
+ali3 : 100.0 - Pass
+sumit : 82.5 - Pass
 
 Valid Rows: 8
 Invalid Rows: 3
 Passes: 7
 Fails: 1
-Average Mark: 65.31
+Average: 65.31
+Highest Scorer: ali3 (100.0)
+
+[Done] exited with code=0 in 0.352 seconds
+
+
 ```
 
 ---
@@ -116,7 +127,7 @@ python -m unittest -v
 Example output:
 
 ```text
-Ran 20 tests
+Ran 21 tests
 
 OK
 ```
@@ -161,11 +172,13 @@ The automated tests verify:
 
 - Summary information is displayed correctly
 - Key output values are tested
-- future improvements
-- 
+  
 
 
-```
+```markdown
+-future improvements
+-
+
 
 3. Confirmed that the 40-mark test failed.
 
