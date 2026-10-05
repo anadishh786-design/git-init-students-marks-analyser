@@ -50,6 +50,10 @@ def read_csv(filename):
                 mark = row.get("Mark") if row.get("Mark") is not None else ""
             if mark == "":
                 mark = row.get("MARK") if row.get("MARK") is not None else ""
+            if mark == "":
+                mark = row.get("Marks") if row.get("Marks") is not None else ""
+            if mark == "":
+                mark = row.get("MARKS") if row.get("MARKS") is not None else ""
 
             valid, result = validate_record(name, mark)
 
@@ -101,8 +105,6 @@ def calculate_summary(students):
 def display_results(*args):
     if len(args) == 2:
         summary, invalid_rows = args
-        valid_rows = summary["passes"] + summary["fails"]
-        print(f"Valid Rows: {valid_rows}")
         print(f"Passes: {summary['passes']}")
         print(f"Fails: {summary['fails']}")
         print(f"Invalid Rows: {invalid_rows}")
@@ -145,10 +147,10 @@ def display_results(*args):
     raise TypeError("display_results() takes either 2 or 3 positional arguments")
 
 # function 5 protects main execution.
-def main():
-    students, invalid_rows = read_csv("students.csv")
+def main(csv_file="students.csv"):
+    students, invalid_rows = read_csv(csv_file)
     summary = calculate_summary(students)
-    display_results(students,summary, invalid_rows)
+    display_results(students, summary, invalid_rows)
 
 
 if __name__ == "__main__":
