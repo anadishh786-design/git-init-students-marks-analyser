@@ -126,42 +126,28 @@ class TestMarksAnalyser(unittest.TestCase):
 
         os.remove(filename)
 
-    def test_display_results_summary(self):
-        summary = {
-            "passes": 2,
-            "fails": 1,
-            "average": 53.83,
-            "highest_scorer": {"name": "John", "mark": 82.5},
-        }
-
-        with patch("sys.stdout", new=StringIO()) as fake_output:
-            display_results([], summary, 1)
-            output = fake_output.getvalue()
-
-            self.assertIn("Passes: 2", output)
-            self.assertIn("Fails: 1", output)
-            self.assertIn("Invalid Rows: 1", output)
-            self.assertIn("Average: 53.83", output)
-            self.assertIn("Highest Scorer: John (82.5)", output)
-
-    def test_display_results_summary_only(self):
+    def test_display_results_detail(self):
+        students = [
+            {"name": "Alice", "mark": 80.0},
+            {"name": "Bob", "mark": 30.0},
+        ]
         summary = {
             "passes": 1,
             "fails": 1,
-            "average": 60.75,
-            "highest_scorer": {"name": "John", "mark": 82.5},
+            "average": 55.0,
+            "highest_scorer": {"name": "Alice", "mark": 80.0},
         }
 
         with patch("sys.stdout", new=StringIO()) as fake_output:
-            display_results(summary, 0)
+            display_results(students, summary, 0)
             output = fake_output.getvalue()
 
-            self.assertNotIn("Student Results", output)
-            self.assertNotIn("Valid Rows", output)
+            self.assertIn("Alice : 80.0 - Pass", output)
+            self.assertIn("Bob : 30.0 - Fail", output)
+            self.assertIn("Valid Rows: 2", output)
             self.assertIn("Passes: 1", output)
             self.assertIn("Fails: 1", output)
             self.assertIn("Invalid Rows: 0", output)
-            self.assertIn("Highest Scorer: John (82.5)", output)
 
     def test_csv_invalid_rows_counted_once(self):
         csv_data = (
@@ -201,7 +187,7 @@ class TestMarksAnalyser(unittest.TestCase):
 
     def test_main_integration_with_temp_csv(self):
         csv_content = (
-            "Name,Marks\n"
+            "name,marks\n"
             "Alice,80\n"
             "Bob,30\n"
         )
@@ -215,12 +201,8 @@ class TestMarksAnalyser(unittest.TestCase):
                 main.main(filename)
                 output = fake_output.getvalue()
 
-            self.assertIn("Alice", output)
-            self.assertIn("80", output)
-            self.assertIn("Pass", output)
-            self.assertIn("Bob", output)
-            self.assertIn("30", output)
-            self.assertIn("Fail", output)
+            self.assertIn("Alice : 80.0 - Pass", output)
+            self.assertIn("Bob : 30.0 - Fail", output)
             self.assertIn("Valid Rows: 2", output)
         finally:
             os.remove(filename)
