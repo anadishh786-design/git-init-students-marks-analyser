@@ -127,7 +127,7 @@ python -m unittest -v
 Example output:
 
 ```text
-Ran 21 tests
+Ran 20tests
 
 OK
 ```
