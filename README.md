@@ -2,9 +2,9 @@
 
 ## Overview
 
-This Python application reads student marks from a CSV file, validates the data, and produces a summary report.
+Marks Analyser is a Python application that reads student records from a CSV file, validates the data, and generates a summary of student performance.
 
-The project was refactored in Module 3 to improve maintainability and add automated testing using Python's built-in `unittest` framework.
+The project was refactored in Module 3 to improve maintainability by separating responsibilities into functions and adding automated tests using Python's built-in `unittest` framework.
 
 ---
 
@@ -12,36 +12,42 @@ The project was refactored in Module 3 to improve maintainability and add automa
 
 ### Data Validation
 
-The program validates each student record and rejects invalid rows.
+Each record is validated before being processed.
 
-#### Valid Name Rules
+#### Name Rules
 
-- Name must not be blank
-- Name must not contain only spaces
+- Name must not be blank.
+- Name must not contain only whitespace.
 
-#### Valid Mark Rules
+#### Marks Rules
 
-- Marks must be numeric
-- Marks can contain decimals
-- Marks must be between 0 and 100 inclusive
-- NaN values are rejected
-- Infinite values are rejected
+- Marks must be numeric.
+- Decimal marks are accepted.
+- Marks must be between 0 and 100 inclusive.
+- Negative marks are rejected.
+- Marks greater than 100 are rejected.
+- NaN values are rejected.
+- Infinite values are rejected.
+
+Invalid records are skipped and counted separately.
 
 ---
 
 ## Summary Information
 
-For valid records the program displays:
+For all valid students, the program displays:
 
 - Student name
-- Mark
+- Marks obtained
 - Pass/Fail status
-- Valid row count
-- Invalid row count
+- Number of valid records
+- Number of invalid records
 - Pass count
 - Fail count
 - Average mark
 - Highest-scoring student
+
+A student passes when their mark is 40 or above.
 
 ---
 
@@ -57,9 +63,9 @@ For valid records the program displays:
 
 ---
 
-## Refactoring Changes
+## Functions
 
-The application was reorganised into separate functions:
+The application is organised into the following functions:
 
 ```python
 validate_record()
@@ -76,19 +82,19 @@ if __name__ == "__main__":
     main()
 ```
 
-This allows the functions to be imported by the test suite without automatically running the application.
+This allows functions to be imported and tested without automatically running the program.
 
 ---
 
 ## Running the Program
 
-Run the analyser:
+Run the application with:
 
 ```bash
 python main.py
 ```
 
-Example output:
+### Example Output
 
 ```text
 Student Results
@@ -108,26 +114,22 @@ Passes: 7
 Fails: 1
 Average: 65.31
 Highest Scorer: ali3 (100.0)
-
-[Done] exited with code=0 in 0.352 seconds
-
-
 ```
 
 ---
 
 ## Running the Tests
 
-Run all automated tests:
+Execute all tests using:
 
 ```bash
-python -m unittest -v
+python -m unittest discover -v
 ```
 
-Example output:
+### Example Test Output
 
 ```text
-Ran 20tests
+Ran 20 tests
 
 OK
 ```
@@ -136,52 +138,67 @@ OK
 
 ## Test Coverage
 
-The automated tests verify:
+### Validation Tests
 
-### Validation
-
-- 39 → Fail
-- 40 → Pass
-- 82.5 → Accepted
-- 0 → Accepted
-- 100 → Accepted
+- Blank names rejected
+- Whitespace-only names rejected
+- Non-numeric marks rejected
+- Empty marks rejected
 - Negative marks rejected
 - Marks above 100 rejected
-- Blank marks rejected
-- Text marks rejected
-- NaN rejected
-- Infinity rejected
-- Blank names rejected
-- Spaces-only names rejected
+- NaN values rejected
+- Infinite values rejected
+- Decimal marks accepted
+- Boundary values accepted (0, 40, 100)
 
-### Summary Calculations
+### Summary Tests
 
+- Valid row count
 - Pass count
 - Fail count
-- valid rows count
-- Average mark calculation
-- Highest scorer detection
+- Average calculation
+- Highest scorer calculation
 - No valid records handling
 
-### CSV Processing
+### CSV Processing Tests
 
-- CSV records are loaded correctly
-- Invalid rows are counted correctly
+- Valid records loaded correctly
+- Invalid records counted correctly
+- Mixed valid and invalid records handled correctly
 
-### Display Output
+### Display Tests
 
-- Summary information is displayed correctly
-- Key output values are tested
-  
+- Student results displayed correctly
+- Summary output displayed correctly
+- Key output values verified
 
+### Integration Tests
 
-```markdown
--future improvements
--
+- `main()` processes a CSV file correctly
+- Output contains student results and summary information
 
+---
 
-3. Confirmed that the 40-mark test failed.
+## Module 3 Improvements
 
-4. Restored the correct implementation.
+The following improvements were completed during Module 3:
 
-5. Re-ran 
+- Refactored code into smaller reusable functions.
+- Added automated unit tests using `unittest`.
+- Improved record validation.
+- Added support for decimal marks.
+- Added handling for NaN and infinite values.
+- Added integration testing for the program entry point.
+- Maintained import-safe execution using `if __name__ == "__main__"`.
+
+---
+
+## Future Improvements
+
+Planned enhancements for future modules include:
+
+- Command-line argument support.
+- Configurable passing thresholds.
+- Exporting reports to CSV and JSON.
+- Automated testing with GitHub Actions.
+- Improved file and error handling.
