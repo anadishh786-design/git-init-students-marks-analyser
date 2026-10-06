@@ -102,49 +102,28 @@ def calculate_summary(students):
         "highest_scorer": highest
     } 
 #function 4 display results
-def display_results(*args):
-    if len(args) == 2:
-        summary, invalid_rows = args
-        print(f"Passes: {summary['passes']}")
-        print(f"Fails: {summary['fails']}")
-        print(f"Invalid Rows: {invalid_rows}")
+def display_results(students, summary, invalid_rows):
+    print("\nStudent Results")
+    print("-" * 40)
 
-        if summary["average"] is not None:
-            print(f"Average: {summary['average']:.2f}")
-            print(
-                f"Highest Scorer: {summary['highest_scorer']['name']} "
-                f"({summary['highest_scorer']['mark']})"
-            )
-        else:
-            print("No valid records found.")
-        return
+    for student in students:
+        status = "Pass" if student["mark"] >= 40 else "Fail"
+        print(f"{student['name']} : {student['mark']} - {status}")
 
-    if len(args) == 3:
-        students, summary, invalid_rows = args
-        print("\nStudent Results")
-        print("-" * 40)
+    print()
+    print(f"Valid Rows: {len(students)}")
+    print(f"Invalid Rows: {invalid_rows}")
+    print(f"Passes: {summary['passes']}")
+    print(f"Fails: {summary['fails']}")
 
-        for student in students:
-            status = "Pass" if student["mark"] >= 40 else "Fail"
-            print(f"{student['name']} : {student['mark']} - {status}")
-
-        print()
-        print(f"Valid Rows: {len(students)}")
-        print(f"Invalid Rows: {invalid_rows}")
-        print(f"Passes: {summary['passes']}")
-        print(f"Fails: {summary['fails']}")
-
-        if summary["average"] is not None:
-            print(f"Average: {summary['average']:.2f}")
-            print(
-                f"Highest Scorer: {summary['highest_scorer']['name']} "
-                f"({summary['highest_scorer']['mark']})"
-            )
-        else:
-            print("No valid records found.")
-        return
-
-    raise TypeError("display_results() takes either 2 or 3 positional arguments")
+    if summary["average"] is not None:
+        print(f"Average: {summary['average']:.2f}")
+        print(
+            f"Highest Scorer: {summary['highest_scorer']['name']} "
+            f"({summary['highest_scorer']['mark']})"
+        )
+    else:
+        print("No valid records found.")
 
 # function 5 protects main execution.
 def main(csv_file="students.csv"):
