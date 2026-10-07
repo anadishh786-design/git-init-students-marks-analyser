@@ -1,56 +1,136 @@
 import csv
+import math
+# function 1 validate one student record.
 
-valid_students = []
-invalid_count = 0
-pass_count = 0
-fail_count = 0
+def validate_record(name, mark):
+    name = str(name).strip() if name is not None else ""
 
-with open("students.csv", newline="") as file:
-    reader = csv.DictReader(file)
+    if not name:
+        return False, "Blank name"
 
-    for row in reader:
-        name = row["name"].strip()
-        marks = row["marks"].strip()
+    if mark is None or str(mark).strip() == "":
+        return False, "Blank mark"
 
-        try:
-            marks = float(marks)
+    try:
+        score = float(mark)
+    except (TypeError, ValueError):
+        return False, "Non-numeric mark"
 
-            if marks < 0 or marks > 100:
-                raise ValueError
+    if math.isnan(score):
+        return False, "NaN mark"
 
-            valid_students.append((name, marks))
-            if marks >= 40:
-                pass_count += 1
+    if math.isinf(score):
+        return False, "Infinite mark"
+
+    if score < 0 or score > 100:
+        return False, "Mark out of range"
+
+    return True, score
+# function 2 read csv file 
+
+def read_csv(filename):
+    valid_students = []
+    invalid_rows = 0
+
+    with open(filename, newline="", encoding="utf-8") as file:
+        reader = csv.DictReader(file)
+
+        for row in reader:
+            if row is None:
+                continue
+
+            name = (row.get("name") if row.get("name") is not None else "")
+            if not name:
+                name = row.get("Name") if row.get("Name") is not None else ""
+            if not name:
+                name = row.get("NAME") if row.get("NAME") is not None else ""
+
+            mark = row.get("marks") if row.get("marks") is not None else ""
+            if mark == "":
+                mark = row.get("Mark") if row.get("Mark") is not None else ""
+            if mark == "":
+                mark = row.get("MARK") if row.get("MARK") is not None else ""
+            if mark == "":
+                mark = row.get("Marks") if row.get("Marks") is not None else ""
+            if mark == "":
+                mark = row.get("MARKS") if row.get("MARKS") is not None else ""
+
+            valid, result = validate_record(name, mark)
+
+            if valid:
+                valid_students.append({
+                    "name": str(name).strip(),
+                    "mark": result
+                })
             else:
-                fail_count += 1
-        except ValueError:
-            print(f"WARNING: Invalid marks for {name}: {row['marks']}")
-            invalid_count += 1
+                invalid_rows += 1
+                print(f"Rejected row: {row} -> {result}")
 
-print("\nStudent Results")
-print("-" * 30)
+    return valid_students, invalid_rows
 
-for name, marks in valid_students:
-    status = "Pass" if marks >= 40 else "Fail"
-    print(f"{name}: {marks} - {status}")
+# function 3 calculate summary statistics
+def calculate_summary(students):
+    if not students:
+        return {
+            "passes": 0,
+            "fails": 0,
+            "average": None,
+            "highest_scorer": None
+        }
 
-valid_count = len(valid_students)
+    passes = sum(
+        1 for s in students
+        if s["mark"] >= 40
+    )
 
-print("\nSummary")
-print("-" * 30)
-print(f"Valid rows: {valid_count}")
-print(f"Invalid rows: {invalid_count}")
-print(f"Pass: {pass_count}")
-print(f"Fail: {fail_count}")
+    fails = len(students) - passes
+
+    average = (
+        sum(s["mark"] for s in students)
+        / len(students)
+    )
+
+    highest = max(
+        students,
+        key=lambda s: s["mark"]
+    )
+
+    return {
+        "passes": passes,
+        "fails": fails,
+        "average": average,
+        "highest_scorer": highest
+    } 
+#function 4 display results
+def display_results(students, summary, invalid_rows):
+    print("\nStudent Results")
+    print("-" * 40)
+
+    for student in students:
+        status = "Pass" if student["mark"] >= 40 else "Fail"
+        print(f"{student['name']} : {student['mark']} - {status}")
+
+    print()
+    print(f"Valid Rows: {len(students)}")
+    print(f"Invalid Rows: {invalid_rows}")
+    print(f"Passes: {summary['passes']}")
+    print(f"Fails: {summary['fails']}")
+
+    if summary["average"] is not None:
+        print(f"Average: {summary['average']:.2f}")
+        print(
+            f"Highest Scorer: {summary['highest_scorer']['name']} "
+            f"({summary['highest_scorer']['mark']})"
+        )
+    else:
+        print("No valid records found.")
+
+# function 5 protects main execution.
+def main(csv_file="students.csv"):
+    students, invalid_rows = read_csv(csv_file)
+    summary = calculate_summary(students)
+    display_results(students, summary, invalid_rows)
 
 
-if valid_students:
-    average = sum(marks for _, marks in valid_students) / valid_count
-    highest_name, highest_marks = max(valid_students, key=lambda x: x[1])
-
-    print(f"Average marks: {average:.2f}")
-    print(f"Highest scorer: {highest_name} ({highest_marks})")
-
-else:
-    print("Average marks: N/A")
-    print("Highest scorer: N/A")
+if __name__ == "__main__":
+    main()
