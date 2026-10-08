@@ -1,7 +1,14 @@
+import argparse
 import csv
+import json
 import math
-# function 1 validate one student record.
+import sys
+from pathlib import Path
 
+
+# -------------------------------------------------
+# Function 1: Validate one student record
+# -------------------------------------------------
 def validate_record(name, mark):
     name = str(name).strip() if name is not None else ""
 
@@ -26,111 +33,339 @@ def validate_record(name, mark):
         return False, "Mark out of range"
 
     return True, score
-# function 2 read csv file 
 
-def read_csv(filename):
-    valid_students = []
-    invalid_rows = 0
 
-    with open(filename, newline="", encoding="utf-8") as file:
-        reader = csv.DictReader(file)
-
-        for row in reader:
-            if row is None:
-                continue
-
-            name = (row.get("name") if row.get("name") is not None else "")
-            if not name:
-                name = row.get("Name") if row.get("Name") is not None else ""
-            if not name:
-                name = row.get("NAME") if row.get("NAME") is not None else ""
-
-            mark = row.get("marks") if row.get("marks") is not None else ""
-            if mark == "":
-                mark = row.get("Mark") if row.get("Mark") is not None else ""
-            if mark == "":
-                mark = row.get("MARK") if row.get("MARK") is not None else ""
-            if mark == "":
-                mark = row.get("Marks") if row.get("Marks") is not None else ""
-            if mark == "":
-                mark = row.get("MARKS") if row.get("MARKS") is not None else ""
-
-            valid, result = validate_record(name, mark)
-
-            if valid:
-                valid_students.append({
-                    "name": str(name).strip(),
-                    "mark": result
-                })
-            else:
-                invalid_rows += 1
-                print(f"Rejected row: {row} -> {result}")
-
-    return valid_students, invalid_rows
-
-# function 3 calculate summary statistics
-def calculate_summary(students):
-    if not students:
-        return {
-            "passes": 0,
-            "fails": 0,
-            "average": None,
-            "highest_scorer": None
-        }
-
-    passes = sum(
-        1 for s in students
-        if s["mark"] >= 40
+# -------------------------------------------------
+# Function 2: Parse command-line arguments
+# -------------------------------------------------
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(
+        description="Student Reporting Tool"
     )
 
-    fails = len(students) - passes
+    parser.add_argument(
+        "--input",
+        default="students.csv",
+        help="Input CSV file"
+    )
+
+    parser.add_argument(
+        "--output-dir",
+        default="reports",
+        help="Directory for exported reports"
+    )
+
+    parser.add_argument(
+        "--pass-mark",
+        type=float,
+        default=40,
+        help="Passing threshold (0-100)"
+    )
+
+    args = parser.parse_args(argv)
+
+    if not math.isfinite(args.pass_mark):
+        parser.error("Pass mark must be a finite value")
+
+    if args.pass_mark < 0 or args.pass_mark > 100:
+        parser.error("Pass mark must be between 0 and 100")
+
+    return args
+
+
+# -------------------------------------------------
+# Function 3: Read CSV file
+# -------------------------------------------------
+def read_csv(filename):
+
+    filename = Path(filename)
+
+    with open(filename, newline="", encoding="utf-8") as file:
+
+        reader = csv.DictReader(file)
+
+        if reader.fieldnames is None:
+            raise ValueError(
+                "CSV file must contain headers"
+            )
+
+        headers = [
+            header.strip().lower()
+            for header in reader.fieldnames
+        ]
+
+        if "name" not in headers or "marks" not in headers:
+            raise ValueError(
+                "CSV must contain 'name' and 'marks' headers"
+            )
+
+        valid_students = []
+        invalid_rows = 0
+
+        for row in reader:
+
+            name = ""
+            mark = ""
+
+            for key, value in row.items():
+
+                if key is not None and key.strip().lower() == "name":
+                    name = value
+
+                if key is not None and key.strip().lower() == "marks":
+                    mark = value
+
+            valid, result = validate_record(
+                name,
+                mark
+            )
+
+            if valid:
+
+                valid_students.append(
+                    {
+                        "name": str(name).strip(),
+                        "mark": result,
+                    }
+                )
+
+            else:
+
+                invalid_rows += 1
+
+                print(
+                    f"Rejected row: {row} -> {result}"
+                )
+
+        return valid_students, invalid_rows
+
+
+# -------------------------------------------------
+# Function 4: Calculate summary statistics
+# -------------------------------------------------
+def calculate_summary(students, pass_mark=40):
+
+    if not students:
+        return {
+            "valid_count": 0,
+            "pass_count": 0,
+            "fail_count": 0,
+            "average": None,
+            "highest_scorer": None,
+        }
+
+    pass_count = sum(
+        1
+        for student in students
+        if student["mark"] >= pass_mark
+    )
+
+    fail_count = len(students) - pass_count
 
     average = (
-        sum(s["mark"] for s in students)
+        sum(
+            student["mark"]
+            for student in students
+        )
         / len(students)
     )
 
     highest = max(
         students,
-        key=lambda s: s["mark"]
+        key=lambda student: student["mark"]
     )
 
     return {
-        "passes": passes,
-        "fails": fails,
+        "valid_count": len(students),
+        "pass_count": pass_count,
+        "fail_count": fail_count,
         "average": average,
-        "highest_scorer": highest
-    } 
-#function 4 display results
-def display_results(students, summary, invalid_rows):
+        "highest_scorer": highest,
+    }
+
+
+# -------------------------------------------------
+# Function 5: Display results
+# -------------------------------------------------
+def display_results(
+    students,
+    summary,
+    invalid_rows,
+    pass_mark
+):
+
     print("\nStudent Results")
     print("-" * 40)
 
     for student in students:
-        status = "Pass" if student["mark"] >= 40 else "Fail"
-        print(f"{student['name']} : {student['mark']} - {status}")
+
+        status = (
+            "Pass"
+            if student["mark"] >= pass_mark
+            else "Fail"
+        )
+
+        print(
+            f"{student['name']} : "
+            f"{student['mark']} - {status}"
+        )
 
     print()
     print(f"Valid Rows: {len(students)}")
     print(f"Invalid Rows: {invalid_rows}")
-    print(f"Passes: {summary['passes']}")
-    print(f"Fails: {summary['fails']}")
+    print(f"Passes: {summary['pass_count']}")
+    print(f"Fails: {summary['fail_count']}")
 
     if summary["average"] is not None:
-        print(f"Average: {summary['average']:.2f}")
+
         print(
-            f"Highest Scorer: {summary['highest_scorer']['name']} "
+            f"Average: "
+            f"{summary['average']:.2f}"
+        )
+
+        print(
+            f"Highest Scorer: "
+            f"{summary['highest_scorer']['name']} "
             f"({summary['highest_scorer']['mark']})"
         )
-    else:
-        print("No valid records found.")
 
-# function 5 protects main execution.
-def main(csv_file="students.csv"):
-    students, invalid_rows = read_csv(csv_file)
-    summary = calculate_summary(students)
-    display_results(students, summary, invalid_rows)
+    else:
+
+        print("Average: N/A")
+        print("Highest Scorer: N/A")
+
+
+# -------------------------------------------------
+# Function 6: Export reports
+# -------------------------------------------------
+def export_reports(
+    students,
+    summary,
+    invalid_rows,
+    pass_mark,
+    output_dir
+):
+
+    output_path = Path(output_dir)
+
+    output_path.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+    results_file = output_path / "results.csv"
+
+    with open(
+        results_file,
+        "w",
+        newline="",
+        encoding="utf-8"
+    ) as file:
+
+        writer = csv.DictWriter(
+            file,
+            fieldnames=[
+                "name",
+                "marks",
+                "status",
+            ]
+        )
+
+        writer.writeheader()
+
+        for student in students:
+
+            writer.writerow(
+                {
+                    "name": student["name"],
+                    "marks": student["mark"],
+                    "status":
+                    (
+                        "Pass"
+                        if student["mark"] >= pass_mark
+                        else "Fail"
+                    ),
+                }
+            )
+
+    summary_file = output_path / "summary.json"
+
+    data = {
+        "valid_count": len(students),
+        "invalid_count": invalid_rows,
+        "pass_count": summary["pass_count"],
+        "fail_count": summary["fail_count"],
+        "pass_mark": pass_mark,
+        "average": summary["average"],
+        "highest_scorer": summary["highest_scorer"],
+    }
+
+    with open(
+        summary_file,
+        "w",
+        encoding="utf-8"
+    ) as file:
+
+        json.dump(
+            data,
+            file,
+            indent=4
+        )
+
+
+# -------------------------------------------------
+# Function 7: Main
+# -------------------------------------------------
+def main(argv=None):
+
+    args = parse_args(argv)
+
+    if (
+        (argv is None or (isinstance(argv, (list, tuple)) and len(argv) == 0))
+        and Path("sample_students.csv").exists()
+    ):
+        args.input = "sample_students.csv"
+
+    try:
+
+        students, invalid_rows = read_csv(
+            args.input
+        )
+
+    except FileNotFoundError:
+
+        print(
+            f"Error: file '{args.input}' "
+            f"was not found."
+        )
+
+        sys.exit(1)
+
+    except ValueError as error:
+
+        print(f"Error: {error}")
+        sys.exit(1)
+
+    summary = calculate_summary(
+        students,
+        args.pass_mark
+    )
+
+    display_results(
+        students,
+        summary,
+        invalid_rows,
+        args.pass_mark
+    )
+
+    export_reports(
+        students,
+        summary,
+        invalid_rows,
+        args.pass_mark,
+        args.output_dir
+    )
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])
