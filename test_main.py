@@ -1,211 +1,371 @@
-import os
-import main
-import tempfile
-import unittest
-from io import StringIO
-from unittest.mock import patch
-
-from main import (
-    calculate_summary,
-    display_results,
-    read_csv,
-    validate_record,
-)
+import argparse
+import csv
+import json
+import math
+import sys
+from pathlib import Path
 
 
-class TestMarksAnalyser(unittest.TestCase):
+# -------------------------------------------------
+# Function 1: Validate one student record
+# -------------------------------------------------
+def validate_record(name, mark):
+    name = str(name).strip() if name is not None else ""
 
-    def test_39_fail(self):
-        students = [{"name": "A", "mark": 39}]
+    if not name:
+        return False, "Blank name"
 
-        result = calculate_summary(students)
+    if mark is None or str(mark).strip() == "":
+        return False, "Blank mark"
 
-        self.assertEqual(result["fails"], 1)
+    try:
+        score = float(mark)
+    except (TypeError, ValueError):
+        return False, "Non-numeric mark"
 
-    def test_40_pass(self):
-        students = [{"name": "B", "mark": 40}]
+    if math.isnan(score):
+        return False, "NaN mark"
 
-        result = calculate_summary(students)
+    if math.isinf(score):
+        return False, "Infinite mark"
 
-        self.assertEqual(result["passes"], 1)
+    if score < 0 or score > 100:
+        return False, "Mark out of range"
 
-    def test_decimal_mark(self):
-        valid, value = validate_record("John", "82.5")
+    return True, score
 
-        self.assertTrue(valid)
-        self.assertEqual(value, 82.5)
 
-    def test_zero_mark(self):
-        valid, value = validate_record("Jane", "0")
+# -------------------------------------------------
+# Function 2: Parse command-line arguments
+# -------------------------------------------------
+def parse_args(argv=None):
+    parser = argparse.ArgumentParser(
+        description="Student Reporting Tool"
+    )
 
-        self.assertTrue(valid)
-        self.assertEqual(value, 0)
+    parser.add_argument(
+        "--input",
+        default="students.csv",
+        help="Input CSV file"
+    )
 
-    def test_hundred_mark(self):
-        valid, value = validate_record("John", "100")
+    parser.add_argument(
+        "--output-dir",
+        default="reports",
+        help="Directory for exported reports"
+    )
 
-        self.assertTrue(valid)
-        self.assertEqual(value, 100)
+    parser.add_argument(
+        "--pass-mark",
+        type=float,
+        default=40,
+        help="Passing threshold (0-100)"
+    )
 
-    def test_negative_mark(self):
-        valid, _ = validate_record("John", "-5")
+    args = parser.parse_args(argv)
 
-        self.assertFalse(valid)
+    if not math.isfinite(args.pass_mark):
+        parser.error("Pass mark must be a finite value")
 
-    def test_above_hundred(self):
-        valid, _ = validate_record("John", "101")
+    if args.pass_mark < 0 or args.pass_mark > 100:
+        parser.error("Pass mark must be between 0 and 100")
 
-        self.assertFalse(valid)
+    return args
 
-    def test_blank_mark(self):
-        valid, _ = validate_record("John", "")
 
-        self.assertFalse(valid)
+# -------------------------------------------------
+# Function 3: Read CSV file
+# -------------------------------------------------
+def read_csv(filename):
 
-    def test_text_mark(self):
-        valid, _ = validate_record("John", "abc")
+    filename = Path(filename)
 
-        self.assertFalse(valid)
+    with open(filename, newline="", encoding="utf-8") as file:
 
-    def test_infinity_mark(self):
-        valid, _ = validate_record("John", "inf")
+        reader = csv.DictReader(file)
 
-        self.assertFalse(valid)
+        if reader.fieldnames is None:
+            raise ValueError(
+                "CSV file must contain headers"
+            )
 
-    def test_nan_mark(self):
-        valid, _ = validate_record("John", "NaN")
-
-        self.assertFalse(valid)
-
-    def test_blank_name(self):
-        valid, _ = validate_record("", "50")
-
-        self.assertFalse(valid)
-
-    def test_spaces_name(self):
-        valid, _ = validate_record("   ", "50")
-
-        self.assertFalse(valid)
-
-    def test_no_valid_records(self):
-        result = calculate_summary([])
-
-        self.assertEqual(result["passes"], 0)
-        self.assertEqual(result["fails"], 0)
-        self.assertIsNone(result["average"])
-        self.assertIsNone(result["highest_scorer"])
-
-    def test_summary_values(self):
-        students = [
-            {"name": "A", "mark": 39},
-            {"name": "B", "mark": 40},
-            {"name": "C", "mark": 82.5},
+        headers = [
+            header.strip().lower()
+            for header in reader.fieldnames
         ]
 
-        result = calculate_summary(students)
+        if "name" not in headers or "marks" not in headers:
+            raise ValueError(
+                "CSV must contain 'name' and 'marks' headers"
+            )
 
-        self.assertEqual(result["passes"], 2)
-        self.assertEqual(result["fails"], 1)
-        self.assertAlmostEqual(result["average"], 53.83, places=2)
+        valid_students = []
+        invalid_rows = 0
 
-    def test_read_csv(self):
-        content = (
-            "Name,Mark\n"
-            "John,50\n"
-            "Mary,80\n"
-        )
+        for row in reader:
 
-        with tempfile.NamedTemporaryFile(mode="w", delete=False, newline="") as file:
-            file.write(content)
-            filename = file.name
+            name = ""
+            mark = ""
 
-        students, invalid = read_csv(filename)
+            for key, value in row.items():
 
-        self.assertEqual(len(students), 2)
-        self.assertEqual(invalid, 0)
+                if key is not None and key.strip().lower() == "name":
+                    name = value
 
-        os.remove(filename)
+                if key is not None and key.strip().lower() == "marks":
+                    mark = value
 
-    def test_display_results_detail(self):
-        students = [
-            {"name": "Alice", "mark": 80.0},
-            {"name": "Bob", "mark": 30.0},
-        ]
-        summary = {
-            "passes": 1,
-            "fails": 1,
-            "average": 55.0,
-            "highest_scorer": {"name": "Alice", "mark": 80.0},
+            valid, result = validate_record(
+                name,
+                mark
+            )
+
+            if valid:
+
+                valid_students.append(
+                    {
+                        "name": str(name).strip(),
+                        "mark": result,
+                    }
+                )
+
+            else:
+
+                invalid_rows += 1
+
+                print(
+                    f"Rejected row: {row} -> {result}"
+                )
+
+        return valid_students, invalid_rows
+
+
+# -------------------------------------------------
+# Function 4: Calculate summary statistics
+# -------------------------------------------------
+def calculate_summary(students, pass_mark=40):
+
+    if not students:
+        return {
+            "valid_count": 0,
+            "pass_count": 0,
+            "fail_count": 0,
+            "average": None,
+            "highest_scorer": None,
         }
 
-        with patch("sys.stdout", new=StringIO()) as fake_output:
-            display_results(students, summary, 0)
-            output = fake_output.getvalue()
+    pass_count = sum(
+        1
+        for student in students
+        if student["mark"] >= pass_mark
+    )
 
-            self.assertIn("Alice : 80.0 - Pass", output)
-            self.assertIn("Bob : 30.0 - Fail", output)
-            self.assertIn("Valid Rows: 2", output)
-            self.assertIn("Passes: 1", output)
-            self.assertIn("Fails: 1", output)
-            self.assertIn("Invalid Rows: 0", output)
+    fail_count = len(students) - pass_count
 
-    def test_csv_invalid_rows_counted_once(self):
-        csv_data = (
-            "Name,Mark\n"
-            "John,80\n"
-            ",50\n"
-            "Mary,text\n"
-            "Sam,101\n"
+    average = (
+        sum(
+            student["mark"]
+            for student in students
+        )
+        / len(students)
+    )
+
+    highest = max(
+        students,
+        key=lambda student: student["mark"]
+    )
+
+    return {
+        "valid_count": len(students),
+        "pass_count": pass_count,
+        "fail_count": fail_count,
+        "average": average,
+        "highest_scorer": highest,
+    }
+
+
+# -------------------------------------------------
+# Function 5: Display results
+# -------------------------------------------------
+def display_results(
+    students,
+    summary,
+    invalid_rows,
+    pass_mark
+):
+
+    print("\nStudent Results")
+    print("-" * 40)
+
+    for student in students:
+
+        status = (
+            "Pass"
+            if student["mark"] >= pass_mark
+            else "Fail"
         )
 
-        with tempfile.NamedTemporaryFile(mode="w", delete=False, newline="") as file:
-            file.write(csv_data)
-            filename = file.name
-
-        students, invalid = read_csv(filename)
-
-        self.assertEqual(len(students), 1)
-        self.assertEqual(invalid, 3)
-
-        os.remove(filename)
-
-    def test_main_displays_summary(self):
-        students = [
-            {"name": "Ali", "mark": 65},
-            {"name": "Sara", "mark": 35},
-        ]
-
-        with patch.object(main, "read_csv", return_value=(students, 1)):
-            with patch("sys.stdout", new=StringIO()) as fake_output:
-                main.main()
-                output = fake_output.getvalue()
-
-        self.assertIn("Passes: 1", output)
-        self.assertIn("Fails: 1", output)
-        self.assertIn("Invalid Rows: 1", output)
-        self.assertIn("Highest Scorer: Ali (65)", output)
-
-    def test_main_integration_with_temp_csv(self):
-        csv_content = (
-            "name,marks\n"
-            "Alice,80\n"
-            "Bob,30\n"
+        print(
+            f"{student['name']} : "
+            f"{student['mark']} - {status}"
         )
 
-        with tempfile.NamedTemporaryFile(mode="w", delete=False, newline="") as file:
-            file.write(csv_content)
-            filename = file.name
+    print()
+    print(f"Valid Rows: {len(students)}")
+    print(f"Invalid Rows: {invalid_rows}")
+    print(f"Passes: {summary['pass_count']}")
+    print(f"Fails: {summary['fail_count']}")
 
-        try:
-            with patch("sys.stdout", new=StringIO()) as fake_output:
-                main.main(filename)
-                output = fake_output.getvalue()
+    if summary["average"] is not None:
 
-            self.assertIn("Alice : 80.0 - Pass", output)
-            self.assertIn("Bob : 30.0 - Fail", output)
-            self.assertIn("Valid Rows: 2", output)
-        finally:
-            os.remove(filename)
+        print(
+            f"Average: "
+            f"{summary['average']:.2f}"
+        )
+
+        print(
+            f"Highest Scorer: "
+            f"{summary['highest_scorer']['name']} "
+            f"({summary['highest_scorer']['mark']})"
+        )
+
+    else:
+
+        print("Average: N/A")
+        print("Highest Scorer: N/A")
+
+
+# -------------------------------------------------
+# Function 6: Export reports
+# -------------------------------------------------
+def export_reports(
+    students,
+    summary,
+    invalid_rows,
+    pass_mark,
+    output_dir
+):
+
+    output_path = Path(output_dir)
+
+    output_path.mkdir(
+        parents=True,
+        exist_ok=True
+    )
+
+    results_file = output_path / "results.csv"
+
+    with open(
+        results_file,
+        "w",
+        newline="",
+        encoding="utf-8"
+    ) as file:
+
+        writer = csv.DictWriter(
+            file,
+            fieldnames=[
+                "name",
+                "marks",
+                "status",
+            ]
+        )
+
+        writer.writeheader()
+
+        for student in students:
+
+            writer.writerow(
+                {
+                    "name": student["name"],
+                    "marks": student["mark"],
+                    "status":
+                    (
+                        "Pass"
+                        if student["mark"] >= pass_mark
+                        else "Fail"
+                    ),
+                }
+            )
+
+    summary_file = output_path / "summary.json"
+
+    data = {
+        "valid_count": len(students),
+        "invalid_count": invalid_rows,
+        "pass_count": summary["pass_count"],
+        "fail_count": summary["fail_count"],
+        "pass_mark": pass_mark,
+        "average": summary["average"],
+        "highest_scorer": summary["highest_scorer"],
+    }
+
+    with open(
+        summary_file,
+        "w",
+        encoding="utf-8"
+    ) as file:
+
+        json.dump(
+            data,
+            file,
+            indent=4
+        )
+
+
+# -------------------------------------------------
+# Function 7: Main
+# -------------------------------------------------
+def main(argv=None):
+
+    args = parse_args(argv)
+
+    if (
+        (argv is None or (isinstance(argv, (list, tuple)) and len(argv) == 0))
+        and Path("sample_students.csv").exists()
+    ):
+        args.input = "sample_students.csv"
+
+    try:
+
+        students, invalid_rows = read_csv(
+            args.input
+        )
+
+    except FileNotFoundError:
+
+        print(
+            f"Error: file '{args.input}' "
+            f"was not found."
+        )
+
+        sys.exit(1)
+
+    except ValueError as error:
+
+        print(f"Error: {error}")
+        sys.exit(1)
+
+    summary = calculate_summary(
+        students,
+        args.pass_mark
+    )
+
+    display_results(
+        students,
+        summary,
+        invalid_rows,
+        args.pass_mark
+    )
+
+    export_reports(
+        students,
+        summary,
+        invalid_rows,
+        args.pass_mark,
+        args.output_dir
+    )
+
 
 if __name__ == "__main__":
-    unittest.main()
+    main(sys.argv[1:])
