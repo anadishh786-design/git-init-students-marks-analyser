@@ -1,0 +1,21 @@
+name: Tests
+
+on:
+  *ush:
+  pull_request:
+
+jobs:
+  test*
+    runs-on: ubuntu-latest
+
+    s*eps:
+      - name: Checkout
+      * uses: actions/checkout@v4
+
+      * name: Setup Python
+        uses: *ctions/setup-python@v5
+        wit*:
+          python-version: "3.11"*
+      - name: Run Tests
+        r*n: python -m unittest discover -v
+*
