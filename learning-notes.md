@@ -222,7 +222,17 @@ The README includes:
 - example results
 - common errors and fixes
 
-The fresh-copy check will be recorded after cloning the pushed branch into a separate folder and following these README commands.
+I cloned the pushed repository into a separate folder, switched to the Module 4 branch, and followed the README commands:
+
+```powershell
+git clone https://github.com/anadishh786-design/git-init-students-marks-analyser.git C:\Users\anadi\Documents\GitHub\git-init-students-marks-analyser-fresh-copy
+git -C C:\Users\anadi\Documents\GitHub\git-init-students-marks-analyser-fresh-copy switch module-4-cli-reports
+python --version
+python -m unittest discover -v
+python main.py
+```
+
+The interpreter reported Python 3.11.9. Discovery ran 29 tests and finished `OK`. The default run read `students.csv`: 8 valid rows, 3 invalid rows, 7 passes, 1 fail, average 65.31, and highest scorer ali3 (100.0). This confirmed the fresh copy uses the default input and generates the reports.
 
 ---
 
@@ -238,10 +248,10 @@ The fresh-copy check will be recorded after cloning the pushed branch into a sep
    - It checks the actual script execution flow, file creation, command-line arguments, exit status, and output produced by running the real program, not just function-level calculations.
 
 4. How did I confirm the PR contains the complete project?
-   - This will be recorded after the fresh-copy check and PR review are complete.
+   - I cloned the pushed branch into a separate directory, switched to `module-4-cli-reports`, ran all 29 tests, and ran `python main.py` successfully from the clone.
 
 5. What problem did the fresh-copy check uncover?
-   - This will be recorded after running the README instructions in the fresh clone.
+   - No missing files or setup issues were found. The default run read `students.csv` and generated the reports as expected.
 
 ---
 
