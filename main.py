@@ -297,7 +297,14 @@ def export_reports(
         "fail_count": summary["fail_count"],
         "pass_mark": pass_mark,
         "average": summary["average"],
-        "highest_scorer": summary["highest_scorer"],
+        "highest_scorer": (
+            None
+            if summary["highest_scorer"] is None
+            else {
+                "name": summary["highest_scorer"]["name"],
+                "marks": summary["highest_scorer"]["mark"],
+            }
+        ),
     }
 
     with open(
@@ -319,12 +326,6 @@ def export_reports(
 def main(argv=None):
 
     args = parse_args(argv)
-
-    if (
-        (argv is None or (isinstance(argv, (list, tuple)) and len(argv) == 0))
-        and Path("sample_students.csv").exists()
-    ):
-        args.input = "sample_students.csv"
 
     try:
 

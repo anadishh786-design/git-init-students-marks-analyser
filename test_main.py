@@ -368,6 +368,39 @@ class TestMarksAnalyser(unittest.TestCase):
                 1,
             )
 
+            self.assertEqual(
+                data["highest_scorer"],
+                {"name": "Alice", "marks": 80},
+            )
+            self.assertEqual(
+                set(data["highest_scorer"]),
+                {"name", "marks"},
+            )
+
+    def test_export_reports_overwrites_previous_results(self):
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+
+            first_students = [{"name": "Alice", "mark": 80}]
+            first_summary = calculate_summary(first_students, 40)
+            export_reports(first_students, first_summary, 0, 40, tmp_dir)
+
+            latest_students = [{"name": "Bob", "mark": 70}]
+            latest_summary = calculate_summary(latest_students, 40)
+            export_reports(latest_students, latest_summary, 0, 40, tmp_dir)
+
+            with open(
+                os.path.join(tmp_dir, "results.csv"),
+                newline="",
+                encoding="utf-8",
+            ) as file:
+                rows = list(csv.DictReader(file))
+
+            self.assertEqual(
+                rows,
+                [{"name": "Bob", "marks": "70", "status": "Pass"}],
+            )
+
     # -----------------------------
     # Main Integration
     # -----------------------------
@@ -411,6 +444,25 @@ class TestMarksAnalyser(unittest.TestCase):
             "Fails: 1",
             output
         )
+
+    def test_main_missing_input_file_exits_with_error(self):
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+
+            missing_file = os.path.join(tmp_dir, "missing.csv")
+            output_dir = os.path.join(tmp_dir, "reports")
+
+            with patch("sys.stdout", new=StringIO()):
+                with self.assertRaises(SystemExit) as error:
+                    main.main([
+                        "--input",
+                        missing_file,
+                        "--output-dir",
+                        output_dir,
+                    ])
+
+            self.assertEqual(error.exception.code, 1)
+            self.assertFalse(os.path.exists(output_dir))
 
     # -----------------------------
     # End-to-End Test
@@ -473,6 +525,36 @@ class TestMarksAnalyser(unittest.TestCase):
                     )
                 )
             )
+
+    def test_default_input_uses_students_csv_when_sample_exists(self):
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+
+            students_file = os.path.join(tmp_dir, "students.csv")
+            sample_file = os.path.join(tmp_dir, "sample_students.csv")
+            output_dir = os.path.join(tmp_dir, "reports")
+
+            with open(students_file, "w", newline="") as file:
+                file.write("name,marks\nDefault Student,45\n")
+
+            with open(sample_file, "w", newline="") as file:
+                file.write("name,marks\nSample Student,90\n")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    os.path.join(os.path.dirname(__file__), "main.py"),
+                    "--output-dir",
+                    output_dir,
+                ],
+                cwd=tmp_dir,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("Default Student : 45.0 - Pass", result.stdout)
+            self.assertNotIn("Sample Student", result.stdout)
 
 
 if __name__ == "__main__":

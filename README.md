@@ -25,13 +25,13 @@ python --version
 Clone the repository:
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/anadishh786-design/git-init-students-marks-analyser.git
 ```
 
 Move into the project directory:
 
 ```bash
-cd <repository-folder>
+cd git-init-students-marks-analyser
 ```
 
 Switch to the Module 4 branch:
@@ -55,7 +55,7 @@ student-reporting-tool/
 ├── test_main.py
 ├── students.csv
 ├── sample_students.csv
-├── starter-learning-notes.md
+├── learning-notes.md
 ├── readme.md
 ├── .gitignore
 │
