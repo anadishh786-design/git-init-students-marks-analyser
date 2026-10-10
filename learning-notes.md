@@ -200,7 +200,7 @@ The end-to-end test now opens `results.csv` with `csv.DictReader` and `summary.j
 
 Additional subprocess tests confirm that `nan`, `inf`, and `abc` thresholds each exit non-zero. A header-only CSV is also run through the whole program; its CSV has the expected headers and no student rows, while the JSON has zero counts and `null` for average and highest scorer.
 
-After these changes, `python -m unittest discover -v` ran 31 tests and finished `OK`. This is a local result for uncommitted changes. The checked-out HEAD is `9861aa77ea882e44404df2a7d27cdd944c8804ae`; no GitHub Actions run exists for these changes yet.
+After these changes, `python -m unittest discover -v` ran 31 tests and finished `OK`. The additional tests were committed in `148f61d` (`Strengthen Module 4 export and CLI tests`). GitHub Actions passed for the reviewed PR revision `26f08210bd7e8863b7e3d33d34e40d3164658d8c`; see the [successful Tests run](https://github.com/anadishh786-design/git-init-students-marks-analyser/actions/runs/38059223547). The earlier 29-test fresh-copy result is retained in Stage 8 as a historical check.
 
 ---
 
