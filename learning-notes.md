@@ -178,6 +178,8 @@ The tests were written to check:
 - exported CSV and JSON contents
 - repeated run behavior
 - end-to-end script execution with `subprocess.run()`
+- CLI rejection of `nan`, `inf`, and non-numeric thresholds
+- populated and header-only report exports, including exported statuses and summary values
 
 ### Test-file history
 
@@ -191,6 +193,14 @@ From the repository root, `python -m unittest discover -v` ran 29 tests successf
 - `test_threshold_40_passes`: expected 1 pass, got 0 (`AssertionError: 0 != 1`).
 
 I restored `>=` and reran discovery. All 29 tests passed (`Ran 29 tests`, `OK`).
+
+### Follow-up integration checks
+
+The end-to-end test now opens `results.csv` with `csv.DictReader` and `summary.json` with `json.load`. It checks both student rows and their exported statuses, plus the valid/invalid counts, pass threshold, average, and highest scorer. The exact row assertion catches an exported status that is wrong even if the terminal output is correct.
+
+Additional subprocess tests confirm that `nan`, `inf`, and `abc` thresholds each exit non-zero. A header-only CSV is also run through the whole program; its CSV has the expected headers and no student rows, while the JSON has zero counts and `null` for average and highest scorer.
+
+After these changes, `python -m unittest discover -v` ran 31 tests and finished `OK`. This is a local result for uncommitted changes. The checked-out HEAD is `9861aa77ea882e44404df2a7d27cdd944c8804ae`; no GitHub Actions run exists for these changes yet.
 
 ---
 
@@ -226,7 +236,8 @@ I cloned the pushed repository into a separate folder, switched to the Module 4 
 
 ```powershell
 git clone https://github.com/anadishh786-design/git-init-students-marks-analyser.git C:\Users\anadi\Documents\GitHub\git-init-students-marks-analyser-fresh-copy
-git -C C:\Users\anadi\Documents\GitHub\git-init-students-marks-analyser-fresh-copy switch module-4-cli-reports
+Set-Location C:\Users\anadi\Documents\GitHub\git-init-students-marks-analyser-fresh-copy
+git switch module-4-cli-reports
 python --version
 python -m unittest discover -v
 python main.py
@@ -245,10 +256,10 @@ The interpreter reported Python 3.11.9. Discovery ran 29 tests and finished `OK`
    - `test_summary_values` and `test_threshold_40_passes` failed when `>=` was changed to `>`, with pass-count assertions of `1 != 2` and `0 != 1` respectively. Both passed after restoring `>=`.
 
 3. What does the end-to-end test check that a calculation test cannot?
-   - It checks the actual script execution flow, file creation, command-line arguments, exit status, and output produced by running the real program, not just function-level calculations.
+   - It checks the actual script execution flow, file creation, command-line arguments, exit status, and exported CSV/JSON contents, not just function-level calculations. Its exact CSV row assertion includes each status, so it catches a wrong exported status even if printed output is correct.
 
 4. How did I confirm the PR contains the complete project?
-   - I cloned the pushed branch into a separate directory, switched to `module-4-cli-reports`, ran all 29 tests, and ran `python main.py` successfully from the clone.
+   - In the earlier fresh-copy check, I cloned the pushed branch into a separate directory, switched to `module-4-cli-reports`, ran all 29 tests, and ran `python main.py` successfully from the clone. The later 31-test run was local; those uncommitted changes have not yet been checked by GitHub Actions or from a fresh clone.
 
 5. What problem did the fresh-copy check uncover?
    - No missing files or setup issues were found. The default run read `students.csv` and generated the reports as expected.
