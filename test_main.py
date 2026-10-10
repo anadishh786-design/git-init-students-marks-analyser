@@ -147,6 +147,27 @@ class TestMarksAnalyser(unittest.TestCase):
         with self.assertRaises(SystemExit):
             parse_args(["--pass-mark", "-1"])
 
+    def test_invalid_cli_thresholds_exit_nonzero(self):
+        script_path = os.path.join(
+            os.path.dirname(__file__),
+            "main.py",
+        )
+
+        for threshold in ("nan", "inf", "abc"):
+            with self.subTest(threshold=threshold):
+                result = subprocess.run(
+                    [
+                        sys.executable,
+                        script_path,
+                        "--pass-mark",
+                        threshold,
+                    ],
+                    capture_output=True,
+                    text=True,
+                )
+
+                self.assertNotEqual(result.returncode, 0)
+
     # -----------------------------
     # CSV Tests
     # -----------------------------
@@ -517,14 +538,79 @@ class TestMarksAnalyser(unittest.TestCase):
                 result.stdout,
             )
 
-            self.assertTrue(
-                os.path.exists(
-                    os.path.join(
-                        output_dir,
-                        "results.csv",
-                    )
-                )
+            results_path = os.path.join(output_dir, "results.csv")
+            summary_path = os.path.join(output_dir, "summary.json")
+
+            with open(results_path, newline="", encoding="utf-8") as file:
+                rows = list(csv.DictReader(file))
+
+            self.assertEqual(
+                rows,
+                [
+                    {"name": "Alice", "marks": "80.0", "status": "Pass"},
+                    {"name": "Bob", "marks": "30.0", "status": "Fail"},
+                ],
             )
+
+            with open(summary_path, encoding="utf-8") as file:
+                summary = json.load(file)
+
+            self.assertEqual(summary["valid_count"], 2)
+            self.assertEqual(summary["invalid_count"], 0)
+            self.assertEqual(summary["pass_count"], 1)
+            self.assertEqual(summary["fail_count"], 1)
+            self.assertEqual(summary["pass_mark"], 40)
+            self.assertEqual(summary["average"], 55)
+            self.assertEqual(
+                summary["highest_scorer"],
+                {"name": "Alice", "marks": 80.0},
+            )
+
+    def test_end_to_end_empty_export(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            csv_path = os.path.join(tmp_dir, "students.csv")
+            output_dir = os.path.join(tmp_dir, "reports")
+
+            with open(csv_path, "w", newline="", encoding="utf-8") as file:
+                file.write("name,marks\n")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    os.path.join(os.path.dirname(__file__), "main.py"),
+                    "--input",
+                    csv_path,
+                    "--output-dir",
+                    output_dir,
+                ],
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+            with open(
+                os.path.join(output_dir, "results.csv"),
+                newline="",
+                encoding="utf-8",
+            ) as file:
+                reader = csv.DictReader(file)
+                self.assertEqual(reader.fieldnames, ["name", "marks", "status"])
+                self.assertEqual(list(reader), [])
+
+            with open(
+                os.path.join(output_dir, "summary.json"),
+                encoding="utf-8",
+            ) as file:
+                summary = json.load(file)
+
+            self.assertEqual(summary["valid_count"], 0)
+            self.assertEqual(summary["invalid_count"], 0)
+            self.assertEqual(summary["pass_count"], 0)
+            self.assertEqual(summary["fail_count"], 0)
+            self.assertEqual(summary["pass_mark"], 40)
+            self.assertIsNone(summary["average"])
+            self.assertIsNone(summary["highest_scorer"])
 
     def test_default_input_uses_students_csv_when_sample_exists(self):
 
@@ -559,3 +645,4 @@ class TestMarksAnalyser(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
