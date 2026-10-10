@@ -1,204 +1,251 @@
-# Marks Analyser - Module 3
+# Student Reporting Tool (Module 4)
 
-## Overview
-
-Marks Analyser is a Python application that reads student records from a CSV file, validates the data, and generates a summary of student performance.
-
-The project was refactored in Module 3 to improve maintainability by separating responsibilities into functions and adding automated tests using Python's built-in `unittest` framework.
+A Python command-line application that reads student marks from a CSV file, validates records, calculates statistics, displays results, and exports reports in CSV and JSON formats.
 
 ---
 
-## Features
+# Python Version
 
-### Data Validation
-
-Each record is validated before being processed.
-
-#### Name Rules
-
-- Name must not be blank.
-- Name must not contain only whitespace.
-
-#### Marks Rules
-
-- Marks must be numeric.
-- Decimal marks are accepted.
-- Marks must be between 0 and 100 inclusive.
-- Negative marks are rejected.
-- Marks greater than 100 are rejected.
-- NaN values are rejected.
-- Infinite values are rejected.
-
-Invalid records are skipped and counted separately.
-
----
-
-## Summary Information
-
-For all valid students, the program displays:
-
-- Student name
-- Marks obtained
-- Pass/Fail status
-- Number of valid records
-- Number of invalid records
-- Pass count
-- Fail count
-- Average mark
-- Highest-scoring student
-
-A student passes when their mark is 40 or above.
-
----
-
-## Project Structure
+This project was developed and tested using:
 
 ```text
-.
+Python 3.11
+```
+
+Check your Python version:
+
+```bash
+python --version
+```
+
+---
+
+# Clone the Repository
+
+Clone the repository:
+
+```bash
+git clone https://github.com/anadishh786-design/git-init-students-marks-analyser.git
+```
+
+Move into the project directory:
+
+```bash
+cd git-init-students-marks-analyser
+```
+
+Switch to the Module 4 branch:
+
+```bash
+git switch module-4-cli-reports
+```
+
+---
+
+# Project Structure
+
+```text
+student-reporting-tool/
+│
+├── .github/
+│   └── workflows/
+│       └── tests.yml
+│
 ├── main.py
 ├── test_main.py
 ├── students.csv
-└── README.md
+├── sample_students.csv
+├── learning-notes.md
+├── readme.md
+├── .gitignore
+│
+├── reports/
+│   ├── results.csv
+│   └── summary.json
+│
+└── __pycache__/
 ```
 
 ---
 
-## Functions
+# Features
 
-The application is organised into the following functions:
-
-```python
-validate_record()
-read_csv()
-calculate_summary()
-display_results()
-main()
-```
-
-The program entry point is protected using:
-
-```python
-if __name__ == "__main__":
-    main()
-```
-
-This allows functions to be imported and tested without automatically running the program.
+- Reads student data from CSV files
+- Validates student records
+- Supports configurable passing thresholds
+- Calculates:
+  - Average marks
+  - Pass count
+  - Fail count
+  - Highest scorer
+- Displays results in the terminal
+- Exports results to CSV and JSON
+- Handles invalid files and headers
+- Supports command-line arguments
+- Includes automated unit tests
+- Includes GitHub Actions workflow
 
 ---
 
-## Running the Program
+# Running the Program
 
-Run the application with:
+Run using the default input file:
 
 ```bash
 python main.py
 ```
 
-### Example Output
+Run using a custom file:
 
-```text
-Student Results
----------------
-Ali : 65.0 - Pass
-Sara : 82.0 - Pass
-Ravi : 45.0 - Pass
-Meena : 74.0 - Pass
-John : 41.0 - Pass
-ali2 : 33.0 - Fail
-ali3 : 100.0 - Pass
-sumit : 82.5 - Pass
+```bash
+python main.py --input sample_students.csv
+```
 
-Valid Rows: 8
-Invalid Rows: 3
-Passes: 7
-Fails: 1
-Average: 65.31
-Highest Scorer: ali3 (100.0)
+Run using a custom output directory:
+
+```bash
+python main.py --input sample_students.csv --output-dir reports
+```
+
+Run with a custom pass threshold:
+
+```bash
+python main.py --input sample_students.csv --output-dir reports --pass-mark 50
+```
+
+See the available command-line options:
+
+```bash
+python main.py --help
 ```
 
 ---
 
-## Running the Tests
+# Running the Tests
 
-Execute all tests using:
+Run all tests:
 
 ```bash
 python -m unittest discover -v
 ```
 
-### Example Test Output
+Run a specific file:
 
-```text
-Ran 20 tests
-
-OK
+```bash
+python -m unittest -v test_main.py
 ```
 
 ---
 
-## Test Coverage
+# Input Format
 
-### Validation Tests
+The CSV files must contain the headers:
 
-- Blank names rejected
-- Whitespace-only names rejected
-- Non-numeric marks rejected
-- Empty marks rejected
-- Negative marks rejected
-- Marks above 100 rejected
-- NaN values rejected
-- Infinite values rejected
-- Decimal marks accepted
-- Boundary values accepted (0, 40, 100)
+```csv
+name,marks
+Student Name,80
+Another Student,35
+```
 
-### Summary Tests
+Each row must contain:
 
-- Valid row count
-- Pass count
-- Fail count
-- Average calculation
-- Highest scorer calculation
-- No valid records handling
+- a non-blank student name
+- a numeric mark from 0 to 100
 
-### CSV Processing Tests
-
-- Valid records loaded correctly
-- Invalid records counted correctly
-- Mixed valid and invalid records handled correctly
-
-### Display Tests
-
-- Student results displayed correctly
-- Summary output displayed correctly
-- Key output values verified
-
-### Integration Tests
-
-- `main()` processes a CSV file correctly
-- Output contains student results and summary information
+Invalid rows are ignored from the valid results set and reported in the terminal.
 
 ---
 
-## Module 3 Improvements
+# Output Files
 
-The following improvements were completed during Module 3:
+The program generates the following files in the chosen output directory:
 
-- Refactored code into smaller reusable functions.
-- Added automated unit tests using `unittest`.
-- Improved record validation.
-- Added support for decimal marks.
-- Added handling for NaN and infinite values.
-- Added integration testing for the program entry point.
-- Maintained import-safe execution using `if __name__ == "__main__"`.
+- `results.csv`
+- `summary.json`
+
+`results.csv` contains only valid students and includes these columns:
+
+```csv
+name,marks,status
+```
+
+`summary.json` contains:
+
+- valid_count
+- invalid_count
+- pass_count
+- fail_count
+- pass_mark
+- average
+- highest_scorer
 
 ---
 
-## Future Improvements
+# Example Result
 
-Planned enhancements for future modules include:
+Running the program with the sample data produces output like this:
 
-- Command-line argument support.
-- Configurable passing thresholds.
-- Exporting reports to CSV and JSON.
-- Automated testing with GitHub Actions.
-- Improved file and error handling.
+```text
+Rejected row: {'name': 'Noor', 'marks': 'abc'} -> Non-numeric mark
+Rejected row: {'name': '', 'marks': '70'} -> Blank name
+Rejected row: {'name': 'Zoya', 'marks': '105'} -> Mark out of range
+
+Student Results
+----------------------------------------
+Asha : 39.0 - Fail
+Ben : 40.0 - Pass
+Cara : 82.5 - Pass
+
+Valid Rows: 3
+Invalid Rows: 3
+Passes: 2
+Fails: 1
+Average: 53.83
+Highest Scorer: Cara (82.5)
+```
+
+---
+
+# Common Errors and Fixes
+
+## File not found
+
+If the program says the input file was not found, check that you are running from the correct working directory or that your path is relative to the current folder.
+
+```bash
+python main.py --input sample_students.csv
+```
+
+If you are in a different folder, provide the full relative path instead.
+
+## Missing or invalid headers
+
+The CSV must contain `name` and `marks` headers. Header names are trimmed and compared case-insensitively.
+
+If the headers are missing, the program exits with a useful error message.
+
+## Invalid pass threshold
+
+The threshold must be a finite value between 0 and 100.
+
+Example:
+
+```bash
+python main.py --input sample_students.csv --pass-mark 150
+```
+
+This will exit with an error because 150 is outside the valid range.
+
+---
+
+# Troubleshooting
+
+- Run tests first if you want to confirm the project is behaving as expected.
+- If a variable appears undefined during a partial run, execute the whole script rather than a single selected block.
+- Do not forget that relative paths are resolved from the terminal's current working directory, not from the script location.
+
+---
+
+# Final Note
+
+This project is designed to be run with Python 3.11 and the standard library only. It is intended to be used as a student marks reporting tool for CSV validation, threshold analysis, and report exports.

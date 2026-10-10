@@ -1,0 +1,11 @@
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Generated reports
+reports/
+
+# Editor / OS noise
+.vscode/
+.DS_Store
+Thumbs.db

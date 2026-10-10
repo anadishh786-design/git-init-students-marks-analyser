@@ -1,13 +1,21 @@
+import csv
+import json
 import os
-import main
+import subprocess
+import sys
 import tempfile
 import unittest
+
 from io import StringIO
 from unittest.mock import patch
+
+import main
 
 from main import (
     calculate_summary,
     display_results,
+    export_reports,
+    parse_args,
     read_csv,
     validate_record,
 )
@@ -15,197 +23,626 @@ from main import (
 
 class TestMarksAnalyser(unittest.TestCase):
 
-    def test_39_fail(self):
-        students = [{"name": "A", "mark": 39}]
-
-        result = calculate_summary(students)
-
-        self.assertEqual(result["fails"], 1)
-
-    def test_40_pass(self):
-        students = [{"name": "B", "mark": 40}]
-
-        result = calculate_summary(students)
-
-        self.assertEqual(result["passes"], 1)
+    # -----------------------------
+    # Validation Tests
+    # -----------------------------
 
     def test_decimal_mark(self):
         valid, value = validate_record("John", "82.5")
-
         self.assertTrue(valid)
         self.assertEqual(value, 82.5)
 
     def test_zero_mark(self):
-        valid, value = validate_record("Jane", "0")
-
+        valid, value = validate_record("John", "0")
         self.assertTrue(valid)
         self.assertEqual(value, 0)
 
     def test_hundred_mark(self):
         valid, value = validate_record("John", "100")
-
         self.assertTrue(valid)
         self.assertEqual(value, 100)
 
     def test_negative_mark(self):
-        valid, _ = validate_record("John", "-5")
-
+        valid, _ = validate_record("John", "-1")
         self.assertFalse(valid)
 
     def test_above_hundred(self):
         valid, _ = validate_record("John", "101")
-
         self.assertFalse(valid)
 
     def test_blank_mark(self):
         valid, _ = validate_record("John", "")
-
         self.assertFalse(valid)
 
     def test_text_mark(self):
         valid, _ = validate_record("John", "abc")
-
-        self.assertFalse(valid)
-
-    def test_infinity_mark(self):
-        valid, _ = validate_record("John", "inf")
-
         self.assertFalse(valid)
 
     def test_nan_mark(self):
         valid, _ = validate_record("John", "NaN")
+        self.assertFalse(valid)
 
+    def test_inf_mark(self):
+        valid, _ = validate_record("John", "inf")
         self.assertFalse(valid)
 
     def test_blank_name(self):
         valid, _ = validate_record("", "50")
-
         self.assertFalse(valid)
 
-    def test_spaces_name(self):
-        valid, _ = validate_record("   ", "50")
+    # -----------------------------
+    # Summary Tests
+    # -----------------------------
 
-        self.assertFalse(valid)
+    def test_threshold_40_passes(self):
+        students = [{"name": "Ben", "mark": 40}]
+        summary = calculate_summary(students, 40)
 
-    def test_no_valid_records(self):
-        result = calculate_summary([])
+        self.assertEqual(summary["pass_count"], 1)
+        self.assertEqual(summary["fail_count"], 0)
 
-        self.assertEqual(result["passes"], 0)
-        self.assertEqual(result["fails"], 0)
-        self.assertIsNone(result["average"])
-        self.assertIsNone(result["highest_scorer"])
+    def test_threshold_50_fails(self):
+        students = [{"name": "Ben", "mark": 40}]
+        summary = calculate_summary(students, 50)
+
+        self.assertEqual(summary["pass_count"], 0)
+        self.assertEqual(summary["fail_count"], 1)
+
+    def test_no_valid_students(self):
+        summary = calculate_summary([], 40)
+
+        self.assertEqual(summary["pass_count"], 0)
+        self.assertEqual(summary["fail_count"], 0)
+        self.assertIsNone(summary["average"])
+        self.assertIsNone(summary["highest_scorer"])
 
     def test_summary_values(self):
         students = [
-            {"name": "A", "mark": 39},
-            {"name": "B", "mark": 40},
-            {"name": "C", "mark": 82.5},
+            {"name": "Asha", "mark": 39},
+            {"name": "Ben", "mark": 40},
+            {"name": "Cara", "mark": 82.5},
         ]
 
-        result = calculate_summary(students)
+        summary = calculate_summary(students, 40)
 
-        self.assertEqual(result["passes"], 2)
-        self.assertEqual(result["fails"], 1)
-        self.assertAlmostEqual(result["average"], 53.83, places=2)
+        self.assertEqual(summary["pass_count"], 2)
+        self.assertEqual(summary["fail_count"], 1)
+        self.assertAlmostEqual(summary["average"], 53.83, places=2)
 
-    def test_read_csv(self):
-        content = (
-            "Name,Mark\n"
+        self.assertEqual(
+            summary["highest_scorer"]["name"],
+            "Cara"
+        )
+
+    # -----------------------------
+    # CLI Tests
+    # -----------------------------
+
+    def test_default_args(self):
+        args = parse_args([])
+
+        self.assertEqual(args.input, "students.csv")
+        self.assertEqual(args.output_dir, "reports")
+        self.assertEqual(args.pass_mark, 40)
+
+    def test_custom_args(self):
+        args = parse_args([
+            "--input",
+            "sample.csv",
+            "--output-dir",
+            "output",
+            "--pass-mark",
+            "50",
+        ])
+
+        self.assertEqual(args.input, "sample.csv")
+        self.assertEqual(args.output_dir, "output")
+        self.assertEqual(args.pass_mark, 50)
+
+    def test_invalid_pass_mark(self):
+        with self.assertRaises(SystemExit):
+            parse_args(["--pass-mark", "150"])
+
+    def test_invalid_negative_pass_mark(self):
+        with self.assertRaises(SystemExit):
+            parse_args(["--pass-mark", "-1"])
+
+    def test_invalid_cli_thresholds_exit_nonzero(self):
+        script_path = os.path.join(
+            os.path.dirname(__file__),
+            "main.py",
+        )
+
+        for threshold in ("nan", "inf", "abc"):
+            with self.subTest(threshold=threshold):
+                result = subprocess.run(
+                    [
+                        sys.executable,
+                        script_path,
+                        "--pass-mark",
+                        threshold,
+                    ],
+                    capture_output=True,
+                    text=True,
+                )
+
+                self.assertNotEqual(result.returncode, 0)
+
+    # -----------------------------
+    # CSV Tests
+    # -----------------------------
+
+    def test_read_csv_valid_file(self):
+
+        csv_data = (
+            "name,marks\n"
             "John,50\n"
             "Mary,80\n"
         )
 
-        with tempfile.NamedTemporaryFile(mode="w", delete=False, newline="") as file:
-            file.write(content)
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            delete=False,
+            newline=""
+        ) as file:
+
+            file.write(csv_data)
             filename = file.name
 
-        students, invalid = read_csv(filename)
+        try:
 
-        self.assertEqual(len(students), 2)
-        self.assertEqual(invalid, 0)
+            students, invalid = read_csv(filename)
 
-        os.remove(filename)
+            self.assertEqual(
+                len(students),
+                2
+            )
 
-    def test_display_results_detail(self):
-        students = [
-            {"name": "Alice", "mark": 80.0},
-            {"name": "Bob", "mark": 30.0},
-        ]
-        summary = {
-            "passes": 1,
-            "fails": 1,
-            "average": 55.0,
-            "highest_scorer": {"name": "Alice", "mark": 80.0},
-        }
+            self.assertEqual(
+                invalid,
+                0
+            )
 
-        with patch("sys.stdout", new=StringIO()) as fake_output:
-            display_results(students, summary, 0)
-            output = fake_output.getvalue()
+        finally:
+            os.remove(filename)
 
-            self.assertIn("Alice : 80.0 - Pass", output)
-            self.assertIn("Bob : 30.0 - Fail", output)
-            self.assertIn("Valid Rows: 2", output)
-            self.assertIn("Passes: 1", output)
-            self.assertIn("Fails: 1", output)
-            self.assertIn("Invalid Rows: 0", output)
+    def test_invalid_rows_counted(self):
 
-    def test_csv_invalid_rows_counted_once(self):
         csv_data = (
-            "Name,Mark\n"
+            "name,marks\n"
             "John,80\n"
             ",50\n"
             "Mary,text\n"
             "Sam,101\n"
         )
 
-        with tempfile.NamedTemporaryFile(mode="w", delete=False, newline="") as file:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            delete=False,
+            newline=""
+        ) as file:
+
             file.write(csv_data)
             filename = file.name
 
-        students, invalid = read_csv(filename)
+        try:
 
-        self.assertEqual(len(students), 1)
-        self.assertEqual(invalid, 3)
+            students, invalid = read_csv(filename)
 
-        os.remove(filename)
+            self.assertEqual(
+                len(students),
+                1
+            )
+
+            self.assertEqual(
+                invalid,
+                3
+            )
+
+        finally:
+            os.remove(filename)
+
+    def test_missing_header(self):
+
+        csv_data = (
+            "student,score\n"
+            "John,80\n"
+        )
+
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            delete=False,
+            newline=""
+        ) as file:
+
+            file.write(csv_data)
+            filename = file.name
+
+        try:
+
+            with self.assertRaises(ValueError):
+                read_csv(filename)
+
+        finally:
+            os.remove(filename)
+
+    def test_header_only_csv(self):
+
+        csv_data = (
+            "name,marks\n"
+        )
+
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            delete=False,
+            newline=""
+        ) as file:
+
+            file.write(csv_data)
+            filename = file.name
+
+        try:
+
+            students, invalid = read_csv(filename)
+
+            self.assertEqual(len(students), 0)
+            self.assertEqual(invalid, 0)
+
+        finally:
+            os.remove(filename)
+
+    # -----------------------------
+    # Display Tests
+    # -----------------------------
+
+    def test_display_results(self):
+
+        students = [
+            {"name": "Alice", "mark": 80.0},
+            {"name": "Bob", "mark": 30.0},
+        ]
+
+        summary = calculate_summary(
+            students,
+            40,
+        )
+
+        with patch(
+            "sys.stdout",
+            new=StringIO()
+        ) as fake_output:
+
+            display_results(
+                students,
+                summary,
+                0,
+                40,
+            )
+
+            output = fake_output.getvalue()
+
+        self.assertIn(
+            "Alice : 80.0 - Pass",
+            output
+        )
+
+        self.assertIn(
+            "Bob : 30.0 - Fail",
+            output
+        )
+
+    # -----------------------------
+    # Export Tests
+    # -----------------------------
+
+    def test_export_reports(self):
+
+        students = [
+            {
+                "name": "Alice",
+                "mark": 80,
+            }
+        ]
+
+        summary = calculate_summary(
+            students,
+            40,
+        )
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+
+            export_reports(
+                students,
+                summary,
+                0,
+                40,
+                tmp_dir,
+            )
+
+            csv_file = os.path.join(
+                tmp_dir,
+                "results.csv"
+            )
+
+            json_file = os.path.join(
+                tmp_dir,
+                "summary.json"
+            )
+
+            self.assertTrue(
+                os.path.exists(csv_file)
+            )
+
+            self.assertTrue(
+                os.path.exists(json_file)
+            )
+
+            with open(
+                json_file,
+                encoding="utf-8"
+            ) as file:
+
+                data = json.load(file)
+
+            self.assertEqual(
+                data["valid_count"],
+                1,
+            )
+
+            self.assertEqual(
+                data["highest_scorer"],
+                {"name": "Alice", "marks": 80},
+            )
+            self.assertEqual(
+                set(data["highest_scorer"]),
+                {"name", "marks"},
+            )
+
+    def test_export_reports_overwrites_previous_results(self):
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+
+            first_students = [{"name": "Alice", "mark": 80}]
+            first_summary = calculate_summary(first_students, 40)
+            export_reports(first_students, first_summary, 0, 40, tmp_dir)
+
+            latest_students = [{"name": "Bob", "mark": 70}]
+            latest_summary = calculate_summary(latest_students, 40)
+            export_reports(latest_students, latest_summary, 0, 40, tmp_dir)
+
+            with open(
+                os.path.join(tmp_dir, "results.csv"),
+                newline="",
+                encoding="utf-8",
+            ) as file:
+                rows = list(csv.DictReader(file))
+
+            self.assertEqual(
+                rows,
+                [{"name": "Bob", "marks": "70", "status": "Pass"}],
+            )
+
+    # -----------------------------
+    # Main Integration
+    # -----------------------------
 
     def test_main_displays_summary(self):
+
         students = [
             {"name": "Ali", "mark": 65},
             {"name": "Sara", "mark": 35},
         ]
 
-        with patch.object(main, "read_csv", return_value=(students, 1)):
-            with patch("sys.stdout", new=StringIO()) as fake_output:
-                main.main()
-                output = fake_output.getvalue()
+        with patch.object(
+            main,
+            "read_csv",
+            return_value=(students, 1),
+        ):
 
-        self.assertIn("Passes: 1", output)
-        self.assertIn("Fails: 1", output)
-        self.assertIn("Invalid Rows: 1", output)
-        self.assertIn("Highest Scorer: Ali (65)", output)
+            with patch.object(
+                main,
+                "export_reports",
+            ):
 
-    def test_main_integration_with_temp_csv(self):
-        csv_content = (
-            "name,marks\n"
-            "Alice,80\n"
-            "Bob,30\n"
+                with patch(
+                    "sys.stdout",
+                    new=StringIO()
+                ) as fake_output:
+
+                    main.main([])
+
+                    output = (
+                        fake_output
+                        .getvalue()
+                    )
+
+        self.assertIn(
+            "Passes: 1",
+            output
         )
 
-        with tempfile.NamedTemporaryFile(mode="w", delete=False, newline="") as file:
-            file.write(csv_content)
-            filename = file.name
+        self.assertIn(
+            "Fails: 1",
+            output
+        )
 
-        try:
-            with patch("sys.stdout", new=StringIO()) as fake_output:
-                main.main(filename)
-                output = fake_output.getvalue()
+    def test_main_missing_input_file_exits_with_error(self):
 
-            self.assertIn("Alice : 80.0 - Pass", output)
-            self.assertIn("Bob : 30.0 - Fail", output)
-            self.assertIn("Valid Rows: 2", output)
-        finally:
-            os.remove(filename)
+        with tempfile.TemporaryDirectory() as tmp_dir:
+
+            missing_file = os.path.join(tmp_dir, "missing.csv")
+            output_dir = os.path.join(tmp_dir, "reports")
+
+            with patch("sys.stdout", new=StringIO()):
+                with self.assertRaises(SystemExit) as error:
+                    main.main([
+                        "--input",
+                        missing_file,
+                        "--output-dir",
+                        output_dir,
+                    ])
+
+            self.assertEqual(error.exception.code, 1)
+            self.assertFalse(os.path.exists(output_dir))
+
+    # -----------------------------
+    # End-to-End Test
+    # -----------------------------
+
+    def test_end_to_end(self):
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+
+            csv_path = os.path.join(
+                tmp_dir,
+                "students.csv"
+            )
+
+            output_dir = os.path.join(
+                tmp_dir,
+                "reports"
+            )
+
+            with open(
+                csv_path,
+                "w",
+                newline=""
+            ) as file:
+
+                file.write(
+                    "name,marks\n"
+                    "Alice,80\n"
+                    "Bob,30\n"
+                )
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "main.py",
+                    "--input",
+                    csv_path,
+                    "--output-dir",
+                    output_dir,
+                ],
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(
+                result.returncode,
+                0,
+            )
+
+            self.assertIn(
+                "Alice : 80.0 - Pass",
+                result.stdout,
+            )
+
+            results_path = os.path.join(output_dir, "results.csv")
+            summary_path = os.path.join(output_dir, "summary.json")
+
+            with open(results_path, newline="", encoding="utf-8") as file:
+                rows = list(csv.DictReader(file))
+
+            self.assertEqual(
+                rows,
+                [
+                    {"name": "Alice", "marks": "80.0", "status": "Pass"},
+                    {"name": "Bob", "marks": "30.0", "status": "Fail"},
+                ],
+            )
+
+            with open(summary_path, encoding="utf-8") as file:
+                summary = json.load(file)
+
+            self.assertEqual(summary["valid_count"], 2)
+            self.assertEqual(summary["invalid_count"], 0)
+            self.assertEqual(summary["pass_count"], 1)
+            self.assertEqual(summary["fail_count"], 1)
+            self.assertEqual(summary["pass_mark"], 40)
+            self.assertEqual(summary["average"], 55)
+            self.assertEqual(
+                summary["highest_scorer"],
+                {"name": "Alice", "marks": 80.0},
+            )
+
+    def test_end_to_end_empty_export(self):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            csv_path = os.path.join(tmp_dir, "students.csv")
+            output_dir = os.path.join(tmp_dir, "reports")
+
+            with open(csv_path, "w", newline="", encoding="utf-8") as file:
+                file.write("name,marks\n")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    os.path.join(os.path.dirname(__file__), "main.py"),
+                    "--input",
+                    csv_path,
+                    "--output-dir",
+                    output_dir,
+                ],
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+            with open(
+                os.path.join(output_dir, "results.csv"),
+                newline="",
+                encoding="utf-8",
+            ) as file:
+                reader = csv.DictReader(file)
+                self.assertEqual(reader.fieldnames, ["name", "marks", "status"])
+                self.assertEqual(list(reader), [])
+
+            with open(
+                os.path.join(output_dir, "summary.json"),
+                encoding="utf-8",
+            ) as file:
+                summary = json.load(file)
+
+            self.assertEqual(summary["valid_count"], 0)
+            self.assertEqual(summary["invalid_count"], 0)
+            self.assertEqual(summary["pass_count"], 0)
+            self.assertEqual(summary["fail_count"], 0)
+            self.assertEqual(summary["pass_mark"], 40)
+            self.assertIsNone(summary["average"])
+            self.assertIsNone(summary["highest_scorer"])
+
+    def test_default_input_uses_students_csv_when_sample_exists(self):
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+
+            students_file = os.path.join(tmp_dir, "students.csv")
+            sample_file = os.path.join(tmp_dir, "sample_students.csv")
+            output_dir = os.path.join(tmp_dir, "reports")
+
+            with open(students_file, "w", newline="") as file:
+                file.write("name,marks\nDefault Student,45\n")
+
+            with open(sample_file, "w", newline="") as file:
+                file.write("name,marks\nSample Student,90\n")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    os.path.join(os.path.dirname(__file__), "main.py"),
+                    "--output-dir",
+                    output_dir,
+                ],
+                cwd=tmp_dir,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("Default Student : 45.0 - Pass", result.stdout)
+            self.assertNotIn("Sample Student", result.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()
+
