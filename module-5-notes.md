@@ -94,4 +94,7 @@ Final test command: `python -m unittest discover -v`; 45 tests passed (31 Module
 
 - Time spent: not tracked during this work session.
 - Assistance used: GitHub Copilot for implementation, tests, documentation, and validation; no external contributors.
-- GitHub Actions link and push/fresh-clone evidence: to be recorded after remote submission.
+- Pushed branch: `module-5-sqlite-history`; implementation commit: `f594f1a`.
+- Pull request: [#7](https://github.com/anadishh786-design/git-init-students-marks-analyser/pull/7), targeting `module-4-cli-reports`; it remains open and unmerged.
+- GitHub Actions push run: [Run 29 passed](https://github.com/anadishh786-design/git-init-students-marks-analyser/actions/runs/38413623631).
+- Fresh-clone verification of the pushed branch passed all 51 tests.
