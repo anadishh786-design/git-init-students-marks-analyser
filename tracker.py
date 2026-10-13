@@ -17,6 +17,7 @@ from main import (
     read_csv,
     calculate_summary,
     display_results,
+    export_reports,
 )
 
 
@@ -139,6 +140,26 @@ def parse_args(argv=None):
         help="Passing threshold (0-100)",
     )
 
+    subparsers.add_parser(
+        "history",
+        help="List saved analyses",
+    )
+
+    show_parser = subparsers.add_parser(
+        "show",
+        help="Display a saved analysis",
+    )
+    show_parser.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="Saved analysis ID",
+    )
+    show_parser.add_argument(
+        "--output-dir",
+        help="Optionally export saved results to this directory",
+    )
+
     return parser.parse_args(argv)
 
 
@@ -178,8 +199,123 @@ def save_analysis(connection, source_file, pass_mark, invalid_count, students):
     return analysis_id
 
 
+def fetch_analysis(connection, analysis_id):
+    """Fetch an analysis and its valid student count."""
+    return connection.execute(
+        """
+        SELECT a.id, a.created_at, a.source_file, a.pass_mark,
+               a.invalid_count, COUNT(s.id) AS valid_count
+        FROM analyses AS a
+        LEFT JOIN student_results AS s ON s.analysis_id = a.id
+        WHERE a.id = ?
+        GROUP BY a.id
+        """,
+        (analysis_id,),
+    ).fetchone()
+
+
+def fetch_students(connection, analysis_id):
+    """Fetch saved students in their original input order."""
+    rows = connection.execute(
+        """
+        SELECT name, marks
+        FROM student_results
+        WHERE analysis_id = ?
+        ORDER BY id
+        """,
+        (analysis_id,),
+    ).fetchall()
+    return [
+        {"name": name, "mark": marks}
+        for name, marks in rows
+    ]
+
+
+def show_history(connection):
+    rows = connection.execute(
+        """
+        SELECT a.id, a.created_at, a.source_file, a.pass_mark,
+               a.invalid_count, COUNT(s.id) AS valid_count
+        FROM analyses AS a
+        LEFT JOIN student_results AS s ON s.analysis_id = a.id
+        GROUP BY a.id
+        ORDER BY a.created_at DESC, a.id DESC
+        """
+    ).fetchall()
+
+    if not rows:
+        print("No saved analyses.")
+        return
+
+    print("ID | Created at (UTC) | Source file | Pass mark | Valid | Invalid")
+    for row in rows:
+        analysis_id, created_at, source_file, pass_mark, invalid_count, valid_count = row
+        print(
+            f"{analysis_id} | {created_at} | {source_file} | "
+            f"{pass_mark:g} | {valid_count} | {invalid_count}"
+        )
+
+
+def show_analysis(connection, analysis, output_dir=None):
+    analysis_id, created_at, source_file, pass_mark, invalid_count, _ = analysis
+    students = fetch_students(connection, analysis_id)
+    summary = calculate_summary(students, pass_mark)
+
+    print(f"Analysis ID: {analysis_id}")
+    print(f"Created at (UTC): {created_at}")
+    print(f"Source file: {source_file}")
+    print(f"Pass mark: {pass_mark:g}")
+    display_results(students, summary, invalid_count, pass_mark)
+
+    if output_dir:
+        export_reports(
+            students,
+            summary,
+            invalid_count,
+            pass_mark,
+            output_dir,
+        )
+        print(f"Reports exported to: {output_dir}")
+
+
+def run_retrieval_command(args):
+    db_path = Path(args.db)
+    if not db_path.is_file():
+        print(f"Error: database does not exist: {db_path}", file=sys.stderr)
+        return 1
+
+    connection = None
+    try:
+        connection = connect_db(db_path)
+        initialise_db(connection)
+
+        if args.command == "history":
+            show_history(connection)
+            return 0
+
+        analysis = fetch_analysis(connection, args.id)
+        if analysis is None:
+            print(
+                f"Error: analysis ID {args.id} was not found.",
+                file=sys.stderr,
+            )
+            return 1
+
+        show_analysis(connection, analysis, args.output_dir)
+        return 0
+    except (OSError, sqlite3.Error) as error:
+        print(f"Error reading database: {error}", file=sys.stderr)
+        return 1
+    finally:
+        if connection is not None:
+            close_db(connection)
+
+
 def main(argv=None):
     args = parse_args(argv)
+
+    if args.command in {"history", "show"}:
+        return run_retrieval_command(args)
 
     try:
         students, invalid_count = read_csv(args.input)

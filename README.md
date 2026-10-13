@@ -249,3 +249,42 @@ This will exit with an error because 150 is outside the valid range.
 # Final Note
 
 This project is designed to be run with Python 3.11 and the standard library only. It is intended to be used as a student marks reporting tool for CSV validation, threshold analysis, and report exports.
+
+---
+
+# Module 5: Saved Analysis History
+
+`tracker.py` saves each CSV analysis in SQLite while `main.py` continues to provide the original Module 4 workflow.
+
+The database has two tables:
+
+- `analyses` stores the UTC creation time, source path, selected pass mark, and invalid-row count.
+- `student_results` stores each accepted student's name and numeric mark, linked to one analysis by `analysis_id`. One analysis has many student rows; separate rows preserve repeated names and input order.
+
+Pass/fail counts, averages, and statuses are calculated when an analysis is displayed or exported. They are not stored.
+
+Save an analysis:
+
+```bash
+python tracker.py --db data/analyses.db analyse --input sample_students.csv --pass-mark 50
+```
+
+List saved analyses, newest first:
+
+```bash
+python tracker.py --db data/analyses.db history
+```
+
+Display one saved analysis without reading the original CSV:
+
+```bash
+python tracker.py --db data/analyses.db show --id 1
+```
+
+Display and export a saved analysis in the Module 4 CSV and JSON formats:
+
+```bash
+python tracker.py --db data/analyses.db show --id 1 --output-dir reports/saved-1
+```
+
+Database parent folders are created as needed. `analyse` validates the input file before creating the database, then saves an analysis and all valid student rows in one transaction.

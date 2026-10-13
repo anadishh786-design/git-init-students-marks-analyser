@@ -1,3 +1,5 @@
+import csv
+import json
 import sqlite3
 import subprocess
 import sys
@@ -5,12 +7,27 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tracker import connect_db, initialise_db
+from tracker import (
+    connect_db,
+    fetch_analysis,
+    fetch_students,
+    initialise_db,
+    save_analysis,
+)
 
 
 class TestTrackerDatabase(unittest.TestCase):
 
     def run_analyse(self, db_path, input_path, *extra_args):
+        return self.run_tracker(
+            db_path,
+            "analyse",
+            "--input",
+            input_path,
+            *extra_args,
+        )
+
+    def run_tracker(self, db_path, *args):
         script_path = Path(__file__).with_name("tracker.py")
         return subprocess.run(
             [
@@ -18,10 +35,7 @@ class TestTrackerDatabase(unittest.TestCase):
                 str(script_path),
                 "--db",
                 str(db_path),
-                "analyse",
-                "--input",
-                str(input_path),
-                *extra_args,
+                *map(str, args),
             ],
             capture_output=True,
             text=True,
@@ -437,6 +451,188 @@ class TestTrackerDatabase(unittest.TestCase):
             connection.close()
 
             self.assertEqual(students, [("Sam", 70.0), ("Sam", 85.0)])
+
+    def test_saved_decimal_marks_and_input_order_are_retrievable(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            input_path = directory / "students.csv"
+            input_path.write_text(
+                "name,marks\nSam,70.25\nSam,85.5\nLee,0\n",
+                encoding="utf-8",
+            )
+            db_path = directory / "analyses.db"
+            result = self.run_analyse(db_path, input_path)
+            self.assertEqual(result.returncode, 0, result.stderr)
+
+            connection = sqlite3.connect(db_path)
+            analysis = fetch_analysis(connection, 1)
+            students = fetch_students(connection, 1)
+            connection.close()
+
+            self.assertEqual(analysis[3:], (40.0, 0, 3))
+            self.assertEqual(
+                students,
+                [
+                    {"name": "Sam", "mark": 70.25},
+                    {"name": "Sam", "mark": 85.5},
+                    {"name": "Lee", "mark": 0.0},
+                ],
+            )
+
+    def test_history_and_show_do_not_create_a_missing_database(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            db_path = Path(temp_dir) / "missing" / "analyses.db"
+            history = self.run_tracker(db_path, "history")
+            result = self.run_tracker(db_path, "show", "--id", "1")
+
+            self.assertNotEqual(history.returncode, 0)
+            self.assertIn("database does not exist", history.stderr)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("database does not exist", result.stderr)
+            self.assertFalse(db_path.exists())
+            self.assertFalse(db_path.parent.exists())
+
+    def test_history_lists_saved_analyses_newest_first(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            db_path = directory / "analyses.db"
+            first_input = directory / "first.csv"
+            second_input = directory / "second.csv"
+            first_input.write_text("name,marks\nA,60\n", encoding="utf-8")
+            second_input.write_text("name,marks\nB,70\nC,80\n", encoding="utf-8")
+
+            first = self.run_analyse(
+                db_path, first_input, "--pass-mark", "55"
+            )
+            second = self.run_analyse(
+                db_path, second_input, "--pass-mark", "65"
+            )
+            self.assertEqual(first.returncode, 0, first.stderr)
+            self.assertEqual(second.returncode, 0, second.stderr)
+
+            history = self.run_tracker(db_path, "history")
+
+            self.assertEqual(history.returncode, 0, history.stderr)
+            self.assertLess(
+                history.stdout.index(str(second_input)),
+                history.stdout.index(str(first_input)),
+            )
+            self.assertIn("65 | 2 | 0", history.stdout)
+            self.assertIn("55 | 1 | 0", history.stdout)
+            self.assertIn("Created at (UTC)", history.stdout)
+
+    def test_empty_history_and_unknown_analysis_are_reported(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            db_path = Path(temp_dir) / "analyses.db"
+            connection = connect_db(db_path)
+            initialise_db(connection)
+            connection.close()
+
+            history = self.run_tracker(db_path, "history")
+            missing = self.run_tracker(db_path, "show", "--id", "42")
+
+            self.assertEqual(history.returncode, 0, history.stderr)
+            self.assertIn("No saved analyses.", history.stdout)
+            self.assertNotEqual(missing.returncode, 0)
+            self.assertIn("analysis ID 42 was not found", missing.stderr)
+
+    def test_show_exports_saved_results_after_input_csv_is_deleted(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            directory = Path(temp_dir)
+            input_path = directory / "students.csv"
+            input_path.write_text(
+                "name,marks\nAsha,39\nBen,60.5\nAsha,80\n",
+                encoding="utf-8",
+            )
+            db_path = directory / "analyses.db"
+
+            first = self.run_analyse(
+                db_path, input_path, "--pass-mark", "50"
+            )
+            second = self.run_analyse(
+                db_path, input_path, "--pass-mark", "75"
+            )
+            self.assertEqual(first.returncode, 0, first.stderr)
+            self.assertEqual(second.returncode, 0, second.stderr)
+
+            input_path.write_text("this file is now different\n", encoding="utf-8")
+            input_path.unlink()
+
+            reports = []
+            display_only = self.run_tracker(db_path, "show", "--id", "1")
+            self.assertEqual(display_only.returncode, 0, display_only.stderr)
+            self.assertIn("Pass mark", display_only.stdout)
+
+            for analysis_id in (1, 2):
+                output_dir = directory / f"saved-{analysis_id}"
+                shown = self.run_tracker(
+                    db_path,
+                    "show",
+                    "--id",
+                    analysis_id,
+                    "--output-dir",
+                    output_dir,
+                )
+                self.assertEqual(shown.returncode, 0, shown.stderr)
+                self.assertIn("Asha : 39.0 - Fail", shown.stdout)
+                self.assertIn("Asha : 80.0", shown.stdout)
+                self.assertTrue((output_dir / "results.csv").exists())
+                self.assertTrue((output_dir / "summary.json").exists())
+                reports.append(output_dir)
+
+            with (reports[0] / "results.csv").open(
+                newline="", encoding="utf-8"
+            ) as file:
+                first_rows = list(csv.DictReader(file))
+            with (reports[1] / "results.csv").open(
+                newline="", encoding="utf-8"
+            ) as file:
+                second_rows = list(csv.DictReader(file))
+            first_summary = json.loads(
+                (reports[0] / "summary.json").read_text(encoding="utf-8")
+            )
+            second_summary = json.loads(
+                (reports[1] / "summary.json").read_text(encoding="utf-8")
+            )
+
+            self.assertEqual(
+                [row["status"] for row in first_rows],
+                ["Fail", "Pass", "Pass"],
+            )
+            self.assertEqual(
+                [row["status"] for row in second_rows],
+                ["Fail", "Fail", "Pass"],
+            )
+            self.assertEqual(first_summary["pass_mark"], 50.0)
+            self.assertEqual(first_summary["pass_count"], 2)
+            self.assertEqual(second_summary["pass_mark"], 75.0)
+            self.assertEqual(second_summary["pass_count"], 1)
+
+    def test_analysis_insert_and_students_roll_back_together(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            db_path = Path(temp_dir) / "analyses.db"
+            connection = connect_db(db_path)
+            initialise_db(connection)
+
+            with self.assertRaises(sqlite3.IntegrityError):
+                save_analysis(
+                    connection,
+                    "students.csv",
+                    50,
+                    0,
+                    [{"name": "", "mark": 75}],
+                )
+
+            analysis_count = connection.execute(
+                "SELECT COUNT(*) FROM analyses"
+            ).fetchone()[0]
+            student_count = connection.execute(
+                "SELECT COUNT(*) FROM student_results"
+            ).fetchone()[0]
+            connection.close()
+
+            self.assertEqual(analysis_count, 0)
+            self.assertEqual(student_count, 0)
 
 
 if __name__ == "__main__":

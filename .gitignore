@@ -5,6 +5,11 @@ __pycache__/
 # Generated reports
 reports/
 
+# Generated SQLite databases
+*.db
+*.sqlite
+*.sqlite3
+
 # Editor / OS noise
 .vscode/
 .DS_Store
