@@ -1,6 +1,6 @@
-# Student Reporting Tool (Module 4)
+# Student Reporting Tool (Module 5)
 
-A Python command-line application that reads student marks from a CSV file, validates records, calculates statistics, displays results, and exports reports in CSV and JSON formats.
+A Python command-line application that validates student marks, calculates reports, and stores each analysis in SQLite for later retrieval. `main.py` remains the Module 4 CSV reporting command; `tracker.py` adds saved analysis history and export.
 
 ---
 
@@ -34,10 +34,10 @@ Move into the project directory:
 cd git-init-students-marks-analyser
 ```
 
-Switch to the Module 4 branch:
+Switch to the Module 5 branch:
 
 ```bash
-git switch module-4-cli-reports
+git switch module-5-sqlite-history
 ```
 
 ---
@@ -45,25 +45,25 @@ git switch module-4-cli-reports
 # Project Structure
 
 ```text
-student-reporting-tool/
+git-init-students-marks-analyser/
 │
 ├── .github/
 │   └── workflows/
 │       └── tests.yml
 │
 ├── main.py
+├── tracker.py
 ├── test_main.py
+├── test_tracker.py
 ├── students.csv
 ├── sample_students.csv
 ├── learning-notes.md
-├── readme.md
+├── module-5-notes.md
+├── README.md
 ├── .gitignore
 │
-├── reports/
-│   ├── results.csv
-│   └── summary.json
-│
-└── __pycache__/
+├── data/       (created when a database is first saved; database files are ignored)
+└── reports/    (generated reports are ignored)
 ```
 
 ---
@@ -80,6 +80,8 @@ student-reporting-tool/
   - Highest scorer
 - Displays results in the terminal
 - Exports results to CSV and JSON
+- Saves analyses and retrieves them from SQLite
+- Lists analysis history and exports saved analyses
 - Handles invalid files and headers
 - Supports command-line arguments
 - Includes automated unit tests
@@ -133,6 +135,7 @@ Run a specific file:
 
 ```bash
 python -m unittest -v test_main.py
+python -m unittest -v test_tracker.py
 ```
 
 ---
@@ -248,7 +251,7 @@ This will exit with an error because 150 is outside the valid range.
 
 # Final Note
 
-This project is designed to be run with Python 3.11 and the standard library only. It is intended to be used as a student marks reporting tool for CSV validation, threshold analysis, and report exports.
+This project uses Python 3.11 and the standard library. SQLite databases, generated reports, and Python caches are excluded from Git by `.gitignore`.
 
 ---
 
