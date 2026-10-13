@@ -92,7 +92,7 @@ Final test command: `python -m unittest discover -v`; 45 tests passed (31 Module
 
 ## Submission record
 
-- Time spent: approximately 50 minutes, estimated retrospectively; it was not timed during the work.
+- Time spent: approximately 6 hours, estimated retrospectively; it was not timed during the work.
 - Assistance used: GitHub Copilot for implementation, tests, documentation, and validation; no external contributors.
 - Pushed branch: `module-5-sqlite-history`; implementation commit: `f594f1a`; final commit before this submission-record update: `1999a73`.
 - Pull request: [#7](https://github.com/anadishh786-design/git-init-students-marks-analyser/pull/7), targeting `module-4-cli-reports`; it remains open and unmerged.
