@@ -1,4 +1,4 @@
-# Student Reporting Tool (Module 5)
+# Student Reporting Tool (Module 6)
 
 A Python command-line application that validates student marks, calculates reports, and stores each analysis in SQLite for later retrieval. `main.py` remains the Module 4 CSV reporting command; `tracker.py` adds saved analysis history and export.
 
@@ -37,7 +37,7 @@ cd git-init-students-marks-analyser
 Switch to the Module 5 branch:
 
 ```bash
-git switch module-5-sqlite-history
+git switch module-6-http-api
 ```
 
 ---
@@ -53,8 +53,11 @@ git-init-students-marks-analyser/
 │
 ├── main.py
 ├── tracker.py
+├── api.py
 ├── test_main.py
 ├── test_tracker.py
+├── test_api.py
+├── requirements.txt
 ├── students.csv
 ├── sample_students.csv
 ├── learning-notes.md
@@ -125,6 +128,12 @@ python main.py --help
 
 # Running the Tests
 
+Install the API dependency:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
 Run all tests:
 
 ```bash
@@ -136,7 +145,34 @@ Run a specific file:
 ```bash
 python -m unittest -v test_main.py
 python -m unittest -v test_tracker.py
+python -m unittest -v test_api.py
 ```
+
+---
+
+# Module 6: HTTP API
+
+Start the local API server:
+
+```bash
+python -m flask --app api run --host 127.0.0.1 --port 5000
+```
+
+The SQLite database defaults to `instance/analyses.db`. Importing `api.py` does not start the server or create a database. The API provides:
+
+- `GET /health` returns `{"status":"ok"}`.
+- `GET /analyses` returns saved analyses newest first.
+- `POST /analyses` saves an analysis and returns HTTP 201 with its database ID.
+- `GET /analyses/<id>` returns one saved analysis, its students, and its calculated summary.
+
+Create an analysis from PowerShell:
+
+```powershell
+$body = '{"pass_mark":50,"students":[{"name":"Asha","marks":39},{"name":"Ben","marks":40},{"name":"Cara","marks":82.5}]}'
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:5000/analyses -ContentType 'application/json' -Body $body
+```
+
+All errors return JSON shaped as `{"error":{"code":"...","message":"..."}}`. Invalid JSON, request structure, or pass marks return HTTP 400; requests without a JSON content type return 415; an unknown analysis ID returns 404. Invalid student values are skipped and counted, while malformed request structure saves nothing. Full endpoint examples and response details are in [module-6-notes.md](module-6-notes.md).
 
 ---
 
