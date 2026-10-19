@@ -20,7 +20,7 @@ def validate_record(name, mark):
 
     try:
         score = float(mark)
-    except (TypeError, ValueError):
+    except (OverflowError, TypeError, ValueError):
         return False, "Non-numeric mark"
 
     if math.isnan(score):

@@ -161,6 +161,29 @@ class TestAnalysisAPI(unittest.TestCase):
 		self.assertEqual(empty_result.get_json()["valid_count"], 0)
 		self.assertEqual(empty_result.get_json()["invalid_count"], 1)
 
+	def test_overflowing_student_mark_is_skipped(self):
+		response = self.client.post(
+			"/analyses",
+			json={
+				"students": [
+					{"name": "Valid", "marks": 70},
+					{"name": "Overflow", "marks": 10**1000},
+				]
+			},
+		)
+		self.assertEqual(response.status_code, 201)
+		self.assertEqual(response.get_json()["valid_count"], 1)
+		self.assertEqual(response.get_json()["invalid_count"], 1)
+
+		analysis = self.client.get(
+			f"/analyses/{response.get_json()['id']}"
+		)
+		self.assertEqual(analysis.status_code, 200)
+		self.assertEqual(
+			analysis.get_json()["students"],
+			[{"name": "Valid", "marks": 70.0, "status": "Pass"}],
+		)
+
 	def test_empty_analysis_has_null_average_and_highest_scorer(self):
 		response = self.post_analysis({"students": []})
 		self.assertEqual(response.status_code, 201)

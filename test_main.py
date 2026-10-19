@@ -58,6 +58,10 @@ class TestMarksAnalyser(unittest.TestCase):
         valid, _ = validate_record("John", "abc")
         self.assertFalse(valid)
 
+    def test_integer_mark_overflow(self):
+        valid, _ = validate_record("John", 10**1000)
+        self.assertFalse(valid)
+
     def test_nan_mark(self):
         valid, _ = validate_record("John", "NaN")
         self.assertFalse(valid)

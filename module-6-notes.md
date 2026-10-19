@@ -45,11 +45,15 @@ The sample has three valid students and an average of about 53.83. At threshold 
 
 Errors use `{"error":{"code":"...","message":"..."}}`. Invalid JSON, threshold values, or request structure return 400; a non-JSON content type returns 415; an unknown analysis ID returns 404. Rejected requests are validated before any analysis is saved.
 
+An invalid `pass_mark` rejects the whole request because the threshold configures how every valid student's result is classified; the analysis cannot be interpreted consistently without it. A student's invalid mark affects only that record, so the API skips that student, increments `invalid_count`, and continues saving any valid students. Numeric conversion overflow is also treated as an invalid student mark.
+
 ## Verification
 
 `test_saved_thresholds_are_independent` in `test_api.py` asserts that each saved analysis uses its own threshold and would fail if retrieval were changed to hardcode 40: for the threshold-50 analysis, Ben must be a fail and the pass count must be 1, not 2. During the deliberate regression run, that test failed at the threshold-50 pass-count assertion with `AssertionError: 2 != 1`. The stored-threshold implementation was restored and the same test passed.
 
 `test_second_application_instance_reads_persisted_results` proves that results remain available to a new application instance opening the same database. Separate temporary database paths are tested for isolation.
+
+The overflow regression first failed before the fix with `OverflowError: int too large to convert to float`. After treating `OverflowError` as an invalid mark, both the API test and direct validator test pass; the complete suite passes all 66 tests.
 
 ## Reflection
 
