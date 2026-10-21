@@ -47,6 +47,22 @@ class TestAnalysisAPI(unittest.TestCase):
 		self.assertEqual(history.status_code, 200)
 		self.assertEqual(history.get_json(), {"analyses": []})
 
+	def test_dashboard_and_static_assets(self):
+		page = self.client.get("/")
+		self.assertEqual(page.status_code, 200)
+		self.assertIn(b"Student Analysis Dashboard", page.data)
+		self.assertIn(b"/static/styles.css", page.data)
+		self.assertIn(b"/static/app.js", page.data)
+
+		styles = self.client.get("/static/styles.css")
+		script = self.client.get("/static/app.js")
+		self.assertEqual(styles.status_code, 200)
+		self.assertEqual(script.status_code, 200)
+		self.assertIn("text/css", styles.content_type)
+		self.assertIn("javascript", script.content_type)
+		styles.close()
+		script.close()
+
 	def test_importing_api_does_not_create_database(self):
 		result = subprocess.run(
 			[
