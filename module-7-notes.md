@@ -144,7 +144,8 @@ Automated tests: `python -m unittest discover -v` passed all 68 tests. `test_exi
 
 - README startup and dashboard usage instructions are in place.
 - Fresh-clone verification used a new virtual environment, installed `requirements.txt`, and passed all 68 tests.
-- GitHub Actions run [#45](https://github.com/anadishh786-design/git-init-students-marks-analyser/actions/runs/39799738914) reports its `test` job completed successfully in 9 seconds. The run summary still showed `In progress` at final inspection. GitHub reported Node.js 20 deprecation and an upcoming `ubuntu-latest` image migration warning.
-- The accepted Module 6 branch remains unmerged (PR #8 is open). The Module 7 compare page is [available here](https://github.com/anadishh786-design/git-init-students-marks-analyser/compare/module-6-http-api...module-7-browser-dashboard?expand=1), but the current GitHub browser session is signed out and GitHub CLI is unavailable, so PR creation is blocked pending authentication. Leave the PR unmerged.
+- GitHub Actions run [#45](https://github.com/anadishh786-design/git-init-students-marks-analyser/actions/runs/39799738914) completed successfully. GitHub reported Node.js 20 deprecation and an upcoming `ubuntu-latest` image migration warning.
+- The accepted Module 6 branch remains unmerged (PR #8 is open). Module 7 PR [#9](https://github.com/anadishh786-design/git-init-students-marks-analyser/pull/9) targets `module-6-http-api` and remains open; do not merge it. Its description contains the implementation and verification summary only.
+- A clean dashboard reload produced no console errors; the deliberate Stage 7 HTTP 404 is the expected failed-request check.
 - Time spent was not tracked.
 - Assistance used: GitHub Copilot assisted with implementation, browser checks, and test/documentation work.
