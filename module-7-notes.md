@@ -31,7 +31,7 @@ Valid:               Invalid:
 -------------------------------------------------
 ```
 
-The page is organized into the three requested areas: a new-analysis form, saved-analysis history, and selected-analysis results. This text wireframe records the paper-sketch plan for the implementation.
+The page is organized into the three requested areas: a new-analysis form, saved-analysis history, and selected-analysis results. This text wireframe records the layout plan; no photo of a hand-drawn paper sketch was captured.
 
 ## Save flow
 
@@ -78,7 +78,7 @@ The end-to-end browser scenarios belong to the later implementation and demonstr
 
 ## Checkpoint 1 evidence
 
-- Commit ID: included in the checkpoint handoff.
+- Commit ID: `6d689b72eef0f3942a932afb1b98bcdf3904f96d`.
 - Form screenshot: captured from the running local dashboard and attached with the checkpoint handoff.
 - Browser row check: 3 initial rows, 4 after Add student, and 3 after removing the newly added row.
 - Browser threshold checks: blank and 101 were rejected; 40 was accepted.
@@ -130,7 +130,7 @@ The end-to-end browser scenarios belong to the later implementation and demonstr
 | Select another result while loading | Newer selection wins | Delayed request 990 did not replace completed request 991 | Browser delayed-fetch selection test |
 | Keyboard and narrow viewport | Controls are keyboard reachable without page overflow | At 375px, document width was 360px; Tab reached threshold, name, marks, Remove, next name | Browser viewport and focused-control checks |
 
-Request/response inspection: the browser captured an actual `POST /analyses` body for analysis 7 with `Content-Type: application/json` and HTTP 201. The body preserved duplicate names and marks as strings. The deliberate Stage 7 failure returned HTTP 404. A CDP network profile used 120ms latency and 40,000/20,000 bytes per second download/upload throughput; `GET /analyses` returned 200 in about 163ms.
+Request/response inspection: browser Playwright request instrumentation captured an actual `POST /analyses` body for analysis 7 with `Content-Type: application/json` and HTTP 201. The body preserved duplicate names and marks as strings. The deliberate Stage 7 failure returned HTTP 404. CDP network emulation used 120ms latency and 40,000/20,000 bytes per second download/upload throughput; `GET /analyses` returned 200 in about 163ms. A manually opened DevTools Network panel was not used.
 
 Automated tests: `python -m unittest discover -v` passed all 68 tests. `test_existing_api_endpoints_return_json` explicitly checks that `/health`, `GET /analyses`, `POST /analyses`, and `GET /analyses/<id>` continue to return JSON.
 
@@ -149,3 +149,11 @@ Automated tests: `python -m unittest discover -v` passed all 68 tests. `test_exi
 - A clean dashboard reload produced no console errors; the deliberate Stage 7 HTTP 404 is the expected failed-request check.
 - Time spent was not tracked.
 - Assistance used: GitHub Copilot assisted with implementation, browser checks, and test/documentation work.
+
+## Final reflection
+
+- A save can succeed before the separate `GET /analyses/<id>` results request fails. The database write is already committed; the display request can fail because of a later network or server problem.
+- Do not retry an uncertain POST automatically because the server may have saved the analysis even if its response was lost. A retry could create a duplicate; check history first unless the API supports an idempotency key.
+- Display the threshold stored with the selected analysis because that is the rule used to calculate its statuses. The current form value may belong to a different analysis.
+- `textContent` inserts a student name as text instead of parsing it as HTML, preventing markup such as `<b>Ann</b>` from becoming elements or executable injected content.
+- Browser checks were required for dynamic row controls, JavaScript validation and serialization, fetch request behavior, form retention, safe DOM rendering, race handling, keyboard focus, narrow-screen layout, and loading under throttling. Python tests verify Flask and API behavior but cannot prove those browser interactions.
