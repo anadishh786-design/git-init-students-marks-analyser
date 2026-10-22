@@ -63,6 +63,18 @@ class TestAnalysisAPI(unittest.TestCase):
 		styles.close()
 		script.close()
 
+	def test_existing_api_endpoints_return_json(self):
+		health = self.client.get("/health")
+		history = self.client.get("/analyses")
+		created = self.post_analysis({"students": SAMPLE_STUDENTS})
+		details = self.client.get(
+			f"/analyses/{created.get_json()['id']}"
+		)
+
+		for response in (health, history, created, details):
+			with self.subTest(status=response.status_code):
+				self.assertTrue(response.is_json)
+
 	def test_importing_api_does_not_create_database(self):
 		result = subprocess.run(
 			[

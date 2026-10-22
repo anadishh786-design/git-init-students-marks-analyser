@@ -114,3 +114,28 @@ The end-to-end browser scenarios belong to the later implementation and demonstr
 - Saving analysis 4 visibly reported two skipped invalid records; the retrieved summary showed one valid and two invalid.
 - An actual browser POST redirected to `/no-such-checkpoint-endpoint` returned HTTP 404. The dashboard displayed the HTTP error, retained threshold/name/marks, and re-enabled Save; history did not gain a record.
 - Separate in-page fetch mocks covered the connection failure and rapid double-submit behavior without creating database records.
+
+## Stage 6: Browser test table
+
+| Scenario | Expected result | Actual result | Evidence |
+| --- | --- | --- | --- |
+| Normal save and retrieval | Save returns an ID; saved details display | Analysis 4 saved and reopened with threshold 42, one valid and two invalid | Browser request and result display; API GET `/analyses/4` |
+| Threshold equals a student's marks | A mark equal to the threshold passes | Ben (40) passed at threshold 40 and failed at threshold 50 | Browser results for analyses 1 and 2 |
+| Blank and invalid marks | Invalid rows are skipped and counted | Analysis 6 kept the valid 75 mark and counted two invalid rows | Browser-saved record 6 and displayed counts |
+| Duplicate names | Both rows remain in input order | Analysis 7 displayed both `Twin` rows, marks 60 then 80 | Browser request body and result table |
+| No valid students | Empty result state and N/A summary values display | Analysis 8 displayed 0 valid, 3 invalid, and N/A average/highest scorer | Browser result panel for analysis 8 |
+| Rapid double-click on Save | Only one POST is sent while pending | One POST call observed for two immediate submissions | Browser in-page request counter with delayed response |
+| Refresh preserves history | Saved records reload from SQLite | Reload showed records 1 through 8 in API order | Browser history after reload |
+| API failure retains input | Error appears, fields remain, Save returns | Real HTTP 404 displayed; values remained and Save re-enabled | Browser POST to `/no-such-checkpoint-endpoint` |
+| Select another result while loading | Newer selection wins | Delayed request 990 did not replace completed request 991 | Browser delayed-fetch selection test |
+| Keyboard and narrow viewport | Controls are keyboard reachable without page overflow | At 375px, document width was 360px; Tab reached threshold, name, marks, Remove, next name | Browser viewport and focused-control checks |
+
+Request/response inspection: the browser captured an actual `POST /analyses` body for analysis 7 with `Content-Type: application/json` and HTTP 201. The body preserved duplicate names and marks as strings. The deliberate Stage 7 failure returned HTTP 404. A CDP network profile used 120ms latency and 40,000/20,000 bytes per second download/upload throughput; `GET /analyses` returned 200 in about 163ms.
+
+Automated tests: `python -m unittest discover -v` passed all 68 tests. `test_existing_api_endpoints_return_json` explicitly checks that `/health`, `GET /analyses`, `POST /analyses`, and `GET /analyses/<id>` continue to return JSON.
+
+## Stage 7: Deliberate failure
+
+- Temporarily changed the JavaScript POST URL to `/no-such-analysis-endpoint`.
+- The browser received HTTP 404. The dashboard showed the HTTP status and server message, kept threshold 41, name `Stage 7 retain`, and marks `77`, restored Save, and did not show success.
+- Restored the production save URL to `/analyses` before committing. A cache-busted browser fetch confirmed the restored URL and absence of the temporary endpoint.
