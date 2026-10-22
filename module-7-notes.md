@@ -74,7 +74,7 @@ The end-to-end browser scenarios belong to the later implementation and demonstr
 - Three empty name/marks rows render initially. Add student creates rows; every row has a Remove control.
 - Rows are gathered in their visible order. The threshold becomes a number; student names and marks remain strings so blank marks stay blank.
 - The form explains that invalid student records are skipped and counted.
-- Saving is not connected yet; that is Stage 4. Server-side API validation remains authoritative.
+- Stage 4 connects the form to the API. Server-side API validation remains authoritative.
 
 ## Checkpoint 1 evidence
 
@@ -85,3 +85,32 @@ The end-to-end browser scenarios belong to the later implementation and demonstr
 - Collection check: `pass_mark` is numeric; `marks` remains a string, including an empty string; the name `<b>Ann</b>` remains literal input text.
 - Browser validation cannot replace API validation because requests can bypass the page or alter its JavaScript. Flask must independently validate every request before storing it.
 - Automated verification: `python -m unittest discover -v` passed all 67 tests.
+
+## Stage 4: Save through the API
+
+- Save sends one `POST /analyses` request with `Content-Type: application/json` and `JSON.stringify()` data. The threshold is numeric and marks stay strings.
+- The Save button shows `Saving…` and is disabled while the request is pending. A second submission during that request is ignored; a browser check observed one POST call for two rapid submissions.
+- A confirmed successful response displays the analysis ID and valid/invalid counts, shows a warning for skipped records, fetches the saved result, refreshes history, and then resets the form.
+- A real browser submission saved analysis ID 4: threshold 42, one valid student (`Keep Me`, 88), and two skipped blank-mark rows. History refreshed and the saved result was fetched and displayed.
+- Opening existing analysis ID 3 displayed threshold 40, Asha and literal `<b>Ann</b>`, average `55.00`, and counts of two valid and one invalid record. The name appeared as text, not bold HTML.
+- A simulated HTTP 400 displayed its status/message, retained the entered fields, and re-enabled Save.
+- A simulated connection failure displayed that the outcome is unknown, retained the entered fields, re-enabled Save, and did not retry. The user is directed to check history before retrying.
+- Both failure cases and the double-submit check used an in-page fetch mock; they did not issue extra POST requests to Flask.
+
+## Stage 5: History and saved results
+
+- On page load, the browser requests `GET /analyses` and displays rows in API order with ID, created time, saved threshold, valid count, invalid count, and View.
+- View requests `GET /analyses/<id>` and displays the saved threshold, each student's name/marks/status, counts, average to two decimals, and highest scorer.
+- Null average and highest scorer render as `N/A`; an empty student list renders a clear empty-result row.
+- Student names are assigned with `textContent`. Viewing analysis 3 showed `<b>Ann</b>` as literal text with no `<b>` element in the result table.
+- The real saved analyses at thresholds 40 and 50 demonstrate different statuses for Ben's mark of 40: Pass at 40, Fail at 50.
+- Browser checks confirmed history loading, empty, and HTTP error messages; after the simulated states, history successfully reloaded all four saved records.
+- A delayed old result request and a faster new selection completed with only the new selection rendered, confirming the request counter prevents stale results from replacing it.
+
+## Checkpoint 2 evidence
+
+- Saved analyses at thresholds 40 and 50 were opened from history. Ben (40 marks) displayed Pass at threshold 40 and Fail at threshold 50.
+- Reloading the dashboard fetched the existing history from SQLite, including analyses 1 through 4.
+- Saving analysis 4 visibly reported two skipped invalid records; the retrieved summary showed one valid and two invalid.
+- An actual browser POST redirected to `/no-such-checkpoint-endpoint` returned HTTP 404. The dashboard displayed the HTTP error, retained threshold/name/marks, and re-enabled Save; history did not gain a record.
+- Separate in-page fetch mocks covered the connection failure and rapid double-submit behavior without creating database records.

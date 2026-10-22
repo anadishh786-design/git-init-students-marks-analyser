@@ -56,9 +56,10 @@
                 <p class="form-note">Invalid student records will be skipped and counted.</p>
                 <div class="form-actions">
                     <button class="button button-secondary" id="add-student" type="button">Add student</button>
-                    <button class="button button-primary" type="submit">Save analysis</button>
+                    <button class="button button-primary" id="save-analysis" type="submit">Save analysis</button>
                 </div>
                 <p class="form-status" id="form-status" role="status" aria-live="polite"></p>
+                <p class="form-warning" id="invalid-warning" role="alert" hidden></p>
             </form>
         </section>
 
@@ -74,14 +75,17 @@
                             <th scope="col">ID</th>
                             <th scope="col">Created</th>
                             <th scope="col">Threshold</th>
+                            <th scope="col">Valid</th>
+                            <th scope="col">Invalid</th>
                             <th scope="col">Action</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <tr><td class="empty-state" colspan="4">No saved analyses yet.</td></tr>
+                    <tbody id="history-rows">
+                        <tr><td class="empty-state" colspan="6">No saved analyses yet.</td></tr>
                     </tbody>
                 </table>
             </div>
+            <p class="form-status" id="history-status" role="status" aria-live="polite">Loading saved analyses…</p>
         </section>
 
         <section class="dashboard-section results-section" aria-labelledby="results-heading">
@@ -90,9 +94,10 @@
                 <h2 id="results-heading">Selected Analysis Results</h2>
             </div>
             <dl class="analysis-details">
-                <div><dt>Analysis ID</dt><dd>—</dd></div>
-                <div><dt>Saved threshold</dt><dd>—</dd></div>
+                <div><dt>Analysis ID</dt><dd id="selected-analysis-id">—</dd></div>
+                <div><dt>Saved threshold</dt><dd id="selected-pass-mark">—</dd></div>
             </dl>
+            <p class="form-status" id="results-status" role="status" aria-live="polite">Select a saved analysis to view its results.</p>
             <h3>Students</h3>
             <div class="table-scroll">
                 <table>
@@ -103,16 +108,16 @@
                             <th scope="col">Status</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="result-students">
                         <tr><td class="empty-state" colspan="3">Select a saved analysis to view its results.</td></tr>
                     </tbody>
                 </table>
             </div>
             <dl class="summary-grid">
-                <div><dt>Average</dt><dd>—</dd></div>
-                <div><dt>Highest scorer</dt><dd>—</dd></div>
-                <div><dt>Valid students</dt><dd>—</dd></div>
-                <div><dt>Invalid records</dt><dd>—</dd></div>
+                <div><dt>Average</dt><dd id="result-average">—</dd></div>
+                <div><dt>Highest scorer</dt><dd id="result-highest">—</dd></div>
+                <div><dt>Valid students</dt><dd id="result-valid-count">—</dd></div>
+                <div><dt>Invalid records</dt><dd id="result-invalid-count">—</dd></div>
             </dl>
         </section>
     </main>
