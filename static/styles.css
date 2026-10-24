@@ -310,7 +310,13 @@ dd {
     }
 
     .student-entry-table {
+        width: 100%;
         table-layout: fixed;
+    }
+
+    .student-entry-table th,
+    .student-entry-table td {
+        min-width: 0;
     }
 
     .student-entry-table th:first-child,
