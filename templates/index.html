@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Student Analysis Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</head>
+<body>
+    <main class="dashboard">
+        <header class="page-header">
+            <p class="eyebrow">STUDENT RECORDS / ANALYSIS</p>
+            <h1>Student Analysis Dashboard</h1>
+            <p class="page-intro">Enter marks, save an analysis, and return to previous results.</p>
+        </header>
+
+        <section class="dashboard-section" aria-labelledby="new-analysis-heading">
+            <div class="section-heading">
+                <span class="section-number">01</span>
+                <h2 id="new-analysis-heading">New Analysis Form</h2>
+            </div>
+            <form id="analysis-form" novalidate>
+                <div class="threshold-field">
+                    <label class="field-label" for="pass-mark">Passing threshold</label>
+                    <input class="threshold-input" id="pass-mark" name="pass_mark" type="number" min="0" max="100" step="any" value="40" required>
+                </div>
+                <div class="table-scroll">
+                    <table class="student-entry-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Student name</th>
+                                <th scope="col">Marks</th>
+                                <th scope="col">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="student-rows">
+                            <tr data-student-row>
+                                <td><input class="student-input" name="student-name" type="text" aria-label="Student 1 name"></td>
+                                <td><input class="student-input" name="student-marks" type="text" inputmode="decimal" aria-label="Student 1 marks"></td>
+                                <td><button class="remove-button" type="button" aria-label="Remove student 1">Remove</button></td>
+                            </tr>
+                            <tr data-student-row>
+                                <td><input class="student-input" name="student-name" type="text" aria-label="Student 2 name"></td>
+                                <td><input class="student-input" name="student-marks" type="text" inputmode="decimal" aria-label="Student 2 marks"></td>
+                                <td><button class="remove-button" type="button" aria-label="Remove student 2">Remove</button></td>
+                            </tr>
+                            <tr data-student-row>
+                                <td><input class="student-input" name="student-name" type="text" aria-label="Student 3 name"></td>
+                                <td><input class="student-input" name="student-marks" type="text" inputmode="decimal" aria-label="Student 3 marks"></td>
+                                <td><button class="remove-button" type="button" aria-label="Remove student 3">Remove</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="form-note">Invalid student records will be skipped and counted.</p>
+                <div class="form-actions">
+                    <button class="button button-secondary" id="add-student" type="button">Add student</button>
+                    <button class="button button-primary" id="save-analysis" type="submit">Save analysis</button>
+                </div>
+                <p class="form-status" id="form-status" role="status" aria-live="polite"></p>
+                <p class="form-warning" id="invalid-warning" role="alert" hidden></p>
+            </form>
+        </section>
+
+        <section class="dashboard-section" aria-labelledby="history-heading">
+            <div class="section-heading">
+                <span class="section-number">02</span>
+                <h2 id="history-heading">Saved Analysis History</h2>
+            </div>
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th scope="col">ID</th>
+                            <th scope="col">Created</th>
+                            <th scope="col">Threshold</th>
+                            <th scope="col">Valid</th>
+                            <th scope="col">Invalid</th>
+                            <th scope="col">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-rows">
+                        <tr><td class="empty-state" colspan="6">No saved analyses yet.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="form-status" id="history-status" role="status" aria-live="polite">Loading saved analyses…</p>
+        </section>
+
+        <section class="dashboard-section results-section" aria-labelledby="results-heading">
+            <div class="section-heading">
+                <span class="section-number">03</span>
+                <h2 id="results-heading">Selected Analysis Results</h2>
+            </div>
+            <dl class="analysis-details">
+                <div><dt>Analysis ID</dt><dd id="selected-analysis-id">—</dd></div>
+                <div><dt>Saved threshold</dt><dd id="selected-pass-mark">—</dd></div>
+            </dl>
+            <p class="form-status" id="results-status" role="status" aria-live="polite">Select a saved analysis to view its results.</p>
+            <h3>Students</h3>
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th scope="col">Student name</th>
+                            <th scope="col">Marks</th>
+                            <th scope="col">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="result-students">
+                        <tr><td class="empty-state" colspan="3">Select a saved analysis to view its results.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <dl class="summary-grid">
+                <div><dt>Average</dt><dd id="result-average">—</dd></div>
+                <div><dt>Highest scorer</dt><dd id="result-highest">—</dd></div>
+                <div><dt>Valid students</dt><dd id="result-valid-count">—</dd></div>
+                <div><dt>Invalid records</dt><dd id="result-invalid-count">—</dd></div>
+                <div><dt>Passes</dt><dd id="result-pass-count">—</dd></div>
+                <div><dt>Fails</dt><dd id="result-fail-count">—</dd></div>
+            </dl>
+        </section>
+    </main>
+</body>
+</html>

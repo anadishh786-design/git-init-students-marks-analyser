@@ -4,7 +4,7 @@ import math
 import sqlite3
 from pathlib import Path
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, render_template, request
 from werkzeug.exceptions import BadRequest, HTTPException
 
 from main import calculate_summary, validate_record
@@ -34,6 +34,10 @@ def create_app(test_config=None):
 	def handle_http_error(error):
 		code = error.name.lower().replace(" ", "_")
 		return _error(code, error.description, error.code)
+
+	@app.get("/")
+	def dashboard():
+		return render_template("index.html")
 
 	@app.get("/health")
 	def health():

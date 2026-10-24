@@ -176,6 +176,20 @@ All errors return JSON shaped as `{"error":{"code":"...","message":"..."}}`. Inv
 
 ---
 
+# Module 7: Browser Dashboard
+
+Start the local dashboard and API from the repository root:
+
+```bash
+python -m flask --app api run --host 127.0.0.1 --port 5000
+```
+
+Open <http://127.0.0.1:5000/> in a browser. Enter a passing threshold and student names and marks, then choose **Save analysis**. Invalid student records are skipped and counted; the saved analysis and its results appear in the history and results sections. Choose **View** on any history row to reopen its saved results. Refreshing the page reloads history from SQLite.
+
+The dashboard and JSON API use the same Flask server. Browser-side checks improve feedback, while the API continues to validate every request. The database defaults to `instance/analyses.db`; see [module-7-notes.md](module-7-notes.md) for the browser test record.
+
+---
+
 # Input Format
 
 The CSV files must contain the headers:
