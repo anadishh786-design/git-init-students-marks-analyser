@@ -168,6 +168,8 @@ function renderAnalysis(analysis) {
 		: `${summary.highest_scorer.name} (${summary.highest_scorer.marks})`;
 	document.querySelector("#result-valid-count").textContent = String(summary.valid_count);
 	document.querySelector("#result-invalid-count").textContent = String(summary.invalid_count);
+	document.querySelector("#result-pass-count").textContent = String(summary.pass_count);
+	document.querySelector("#result-fail-count").textContent = String(summary.fail_count);
 }
 
 async function loadAnalysis(analysisId) {
