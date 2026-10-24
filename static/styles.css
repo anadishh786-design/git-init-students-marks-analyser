@@ -247,6 +247,40 @@ dd {
     margin-top: 18px;
 }
 
+.student-input {
+    width: 100%;
+    min-width: 90px;
+    min-height: 36px;
+    padding: 6px 8px;
+    border: 1px solid #cdd8d0;
+    border-radius: 0;
+    background: #fbfcfa;
+    color: var(--ink);
+    font: inherit;
+}
+
+.threshold-input:focus,
+.student-input:focus {
+    outline: 2px solid var(--green);
+    outline-offset: 2px;
+}
+
+.remove-button {
+    min-height: 34px;
+    padding: 4px 8px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--green-dark);
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.remove-button:hover,
+.button-secondary:hover {
+    border-color: var(--green);
+}
+
 @media (max-width: 560px) {
     .dashboard {
         width: min(100% - 28px, 980px);
@@ -311,40 +345,6 @@ dd {
         grid-template-columns: 1fr;
         gap: 0;
     }
-}
-
-.student-input {
-    width: 100%;
-    min-width: 90px;
-    min-height: 36px;
-    padding: 6px 8px;
-    border: 1px solid #cdd8d0;
-    border-radius: 0;
-    background: #fbfcfa;
-    color: var(--ink);
-    font: inherit;
-}
-
-.threshold-input:focus,
-.student-input:focus {
-    outline: 2px solid var(--green);
-    outline-offset: 2px;
-}
-
-.remove-button {
-    min-height: 34px;
-    padding: 4px 8px;
-    border: 1px solid var(--line);
-    background: var(--surface);
-    color: var(--green-dark);
-    font: inherit;
-    font-size: 0.8rem;
-    font-weight: 700;
-}
-
-.remove-button:hover,
-.button-secondary:hover {
-    border-color: var(--green);
 }
 
 .form-status {
