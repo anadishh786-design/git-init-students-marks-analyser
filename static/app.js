@@ -106,11 +106,11 @@ async function refreshHistory() {
 		historyRows.replaceChildren();
 		if (analyses.length === 0) {
 			const row = document.createElement("tr");
-			const cell = appendCell(row, "No saved analyses yet.");
+			const cell = appendCell(row, "No saved analyses yet. Add student names and marks above, then choose Save analysis to see the results here.");
 			cell.colSpan = 6;
 			cell.className = "empty-state";
 			historyRows.append(row);
-			historyStatus.textContent = "No saved analyses yet.";
+			historyStatus.textContent = "No saved analyses yet. Add student names and marks above, then choose Save analysis to see the results here.";
 			return;
 		}
 
