@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Student Analysis Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="{{ url_for('static', filename='student-search.js') }}" defer></script>
     <script src="{{ url_for('static', filename='app.js') }}" defer></script>
 </head>
 <body>
@@ -99,6 +100,11 @@
             </dl>
             <p class="form-status" id="results-status" role="status" aria-live="polite">Select a saved analysis to view its results.</p>
             <h3>Students</h3>
+            <div class="student-search-field">
+                <label class="field-label" for="student-search">Find a student</label>
+                <input id="student-search" type="search" autocomplete="off" placeholder="Search by name" aria-describedby="student-search-status" disabled>
+            </div>
+            <p class="form-status" id="student-search-status" role="status" aria-live="polite" hidden></p>
             <div class="table-scroll">
                 <table>
                     <thead>

@@ -259,7 +259,25 @@ dd {
     font: inherit;
 }
 
+.student-search-field {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+#student-search {
+    width: min(100%, 320px);
+    min-height: 38px;
+    padding: 6px 10px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    font: inherit;
+}
+
 .threshold-input:focus,
+#student-search:focus,
 .student-input:focus {
     outline: 2px solid var(--green);
     outline-offset: 2px;

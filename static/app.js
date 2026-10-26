@@ -9,6 +9,8 @@ const invalidWarning = document.querySelector("#invalid-warning");
 const historyRows = document.querySelector("#history-rows");
 const historyStatus = document.querySelector("#history-status");
 const resultsStatus = document.querySelector("#results-status");
+const studentSearchInput = document.querySelector("#student-search");
+const studentSearchStatus = document.querySelector("#student-search-status");
 let nextStudentNumber = studentRows.querySelectorAll("[data-student-row]").length + 1;
 let isSaving = false;
 let selectedAnalysisRequest = 0;
@@ -143,6 +145,10 @@ function renderAnalysis(analysis) {
 
 	const resultRows = document.querySelector("#result-students");
 	resultRows.replaceChildren();
+	studentSearchInput.value = "";
+	studentSearchInput.disabled = analysis.students.length === 0;
+	studentSearchStatus.textContent = "";
+	studentSearchStatus.hidden = true;
 	if (analysis.students.length === 0) {
 		const row = document.createElement("tr");
 		const cell = appendCell(row, "No valid student records.");
@@ -152,6 +158,7 @@ function renderAnalysis(analysis) {
 	} else {
 		analysis.students.forEach((student) => {
 			const row = document.createElement("tr");
+			row.dataset.resultStudent = "";
 			appendCell(row, student.name);
 			appendCell(row, String(student.marks));
 			appendCell(row, student.status);
@@ -170,6 +177,24 @@ function renderAnalysis(analysis) {
 	document.querySelector("#result-invalid-count").textContent = String(summary.invalid_count);
 	document.querySelector("#result-pass-count").textContent = String(summary.pass_count);
 	document.querySelector("#result-fail-count").textContent = String(summary.fail_count);
+}
+
+function filterResultStudents() {
+	const query = studentSearchInput.value.trim();
+	const rows = Array.from(document.querySelectorAll("#result-students [data-result-student]"));
+	let visibleCount = 0;
+
+	rows.forEach((row) => {
+		const matches = matchesStudentName(row.cells[0].textContent, query);
+		row.hidden = !matches;
+		if (matches) {
+			visibleCount += 1;
+		}
+	});
+
+	const noMatches = query !== "" && rows.length > 0 && visibleCount === 0;
+	studentSearchStatus.textContent = noMatches ? `No students match "${query}".` : "";
+	studentSearchStatus.hidden = !noMatches;
 }
 
 async function loadAnalysis(analysisId) {
@@ -267,6 +292,8 @@ document.querySelector("#add-student").addEventListener("click", () => {
 	nextStudentNumber += 1;
 	row.querySelector('[name="student-name"]').focus();
 });
+
+studentSearchInput.addEventListener("input", filterResultStudents);
 
 form.addEventListener("click", (event) => {
 	const removeButton = event.target.closest(".remove-button");
