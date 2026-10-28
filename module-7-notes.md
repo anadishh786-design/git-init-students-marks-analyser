@@ -150,6 +150,12 @@ Automated tests: `python -m unittest discover -v` passed all 68 tests. `test_exi
 - Time spent was not tracked.
 - Assistance used: GitHub Copilot assisted with implementation, browser checks, and test/documentation work.
 
+## Dashboard search follow-up
+
+- Added `node --test test_dashboard_search.js` to the GitHub Actions workflow after the Python test suite, so the browser-side name matcher test runs on pushes and pull requests.
+- The Module 8 reasoning check discussed distinguishing two students with the same name. Student IDs are out of scope for this module, so no student-ID implementation was added.
+- Environment/browser check (2026-10-27): the first recreation attempt found no `py` launcher or Python executable on PATH. Follow-up located a bundled Python 3.12.14 runtime and recreated `.venv`. PyPI access was blocked by local socket permissions, so I built an offline wheelhouse from the machine's cached Flask 3.1.3 distribution and dependencies, then installed `requirements.txt` with pip. `pip check` reported no broken requirements. The dashboard returned HTTP 200 at `http://127.0.0.1:5000/`. A Chrome headless browser run opened saved analysis 9 and observed `esh` showing `eshan`, an absent query showing the no-match message, and a cleared search showing all three students. The short recording is `artifacts/dashboard-search-demo.gif`.
+
 ## Final reflection
 
 - A save can succeed before the separate `GET /analyses/<id>` results request fails. The database write is already committed; the display request can fail because of a later network or server problem.

@@ -2,18 +2,18 @@
 
 ## Problem
 
-A teacher struggles to locate a student in saved results because scanning a long list takes unnecessary effort.
+A teacher struggles to get started and find a student's result because an empty history does not explain what to do next, and a long results list takes effort to scan.
 
 ## Two possible solutions
 
-1. Add a name search field to filter the selected analysis results.
-2. Sort the results table by student name.
+1. Explain how to create the first analysis in the empty history state.
+2. Add a name search field to filter the selected analysis results.
 
-I chose name search because it lets a teacher find a student while keeping the current result order intact. It filters only the selected analysis in the browser and leaves saved marks, thresholds, and summary values unchanged. The empty-history guidance was also added as a small copy change at the user's request.
+I implemented both small improvements because they address the two related points where teachers lose time: getting started and locating a student. Search filters only the displayed rows for the selected analysis; saved marks, thresholds, and summary values stay unchanged.
 
 ## Example
 
-When a teacher types part of a student's name in a selected analysis, the dashboard should show matching results and explain when nothing matches.
+When a teacher opens the dashboard with no saved analyses, the dashboard should explain how to create the first one. When a teacher types part of a student's name in a selected analysis, the dashboard should show matching results and explain when nothing matches.
 
 ## Implementation
 
@@ -31,20 +31,30 @@ When a teacher types part of a student's name in a selected analysis, the dashbo
 
 | Check | Expected | Actual |
 | --- | --- | --- |
-| Empty history | The history row and status explain how to create the first analysis. | Initial HTML and the JavaScript empty-history branch contain the same guidance. Browser execution could not be verified because Python is unavailable in this environment. |
-| Normal search | A case-insensitive partial name shows matching students; clearing the search shows all students. | Search matching is implemented by `matchesStudentName`; the focused Node test passes. Live browser interaction could not be verified in this environment. |
-| Confusing case: no name matches | No student rows remain visible and a no-match message appears. | The UI branch sets the live status when the query is non-empty and zero rows match. Browser execution could not be verified in this environment. |
+| Empty history | The history row and status explain how to create the first analysis. | Chrome headless showed the initial empty history row with the save instructions. The rendered history status is populated after the page loads. |
+| Normal search | A case-insensitive partial name shows matching students; clearing the search shows all students. | In Chrome, `esh` showed eshan; clearing the query restored eshan, zaid, and rohab. The focused Node test also passed. |
+| Confusing case: no name matches | No student rows remain visible and a no-match message appears. | In Chrome, `zz-no-student-zz` hid all three rows and displayed `No students match "zz-no-student-zz".` |
 | Empty saved analysis | Search is disabled and the existing no-valid-records row remains. | `renderAnalysis` disables search when the selected analysis has no students. This path was reviewed in code; browser execution could not be verified. |
 
-The focused test command is `node --test test_dashboard_search.js`. The existing Python tests were attempted with `.venv\Scripts\python.exe -m unittest discover -v`, but could not start because `.venv` points to a Python installation that no longer exists; there is no Python executable available on PATH.
+The focused test command is `node --test test_dashboard_search.js`. On the first setup attempt, `.venv` pointed to a Python installation that no longer existed and no Python executable was available on PATH. For the follow-up check, I recreated `.venv` with the bundled Python 3.12.14 runtime. PyPI access was blocked by local socket permissions, so I built an offline wheelhouse from the local Flask 3.1.3 package cache and installed `requirements.txt` with pip. `pip check` reported no broken requirements. On 2026-10-28, the focused Node test passed again (1 test); Chrome headless loaded the dashboard and showed the empty-history guidance. The previously recorded search interaction demo covers matching, no-match, and cleared-query states.
 
 ## Limitation and deliberately omitted feature
 
 Search applies only to the currently selected analysis and matches student names, not marks or statuses. I left out filters for marks and pass/fail status to keep the change small.
 
-## AI assistance and personal verification
+## Personal verification
 
-AI assistance was used to help plan and implement the dashboard changes and draft these notes. I checked that the initial and rendered empty-state messages match, reviewed how search resets and handles empty or no-match results, and ran the focused Node test. I could not verify live browser interactions or run the Python suite because the browser automation helper and Python runtime are unavailable in this environment.
+I launched the dashboard at `http://127.0.0.1:5000/`; it returned HTTP 200 and rendered the Student Analysis Dashboard. In Chrome headless, I opened saved analysis 9 (eshan 48, zaid 47, rohab 38) and observed these three states:
+
+| Search | Visible students | Status message |
+| --- | --- | --- |
+| `esh` | eshan | No no-match message |
+| `zz-no-student-zz` | None | `No students match "zz-no-student-zz".` |
+| Cleared | eshan, zaid, rohab | No no-match message |
+
+The three states are attached in [dashboard-search-demo.gif](artifacts/dashboard-search-demo.gif). `node --test test_dashboard_search.js` passed (1 test), and `python -m unittest discover -v` passed all 68 tests. The dashboard search test is also included in the GitHub Actions workflow.
+
+Student-ID changes were considered in the reasoning check and are out of scope for this module; no student-ID implementation is included.
 
 ## If simplified further
 
