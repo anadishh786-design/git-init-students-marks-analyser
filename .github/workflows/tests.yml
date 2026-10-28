@@ -22,3 +22,6 @@ jobs:
 
       - name: Run Tests
         run: python -m unittest discover -v
+
+      - name: Run dashboard search tests
+        run: node --test test_dashboard_search.js
