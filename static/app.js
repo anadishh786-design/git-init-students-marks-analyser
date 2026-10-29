@@ -11,9 +11,11 @@ const historyStatus = document.querySelector("#history-status");
 const resultsStatus = document.querySelector("#results-status");
 const studentSearchInput = document.querySelector("#student-search");
 const studentSearchStatus = document.querySelector("#student-search-status");
+const nearPassFilter = document.querySelector("#near-pass-filter");
 let nextStudentNumber = studentRows.querySelectorAll("[data-student-row]").length + 1;
 let isSaving = false;
 let selectedAnalysisRequest = 0;
+let selectedPassMark = null;
 
 function createStudentRow(studentNumber) {
 	const row = document.createElement("tr");
@@ -146,7 +148,10 @@ function renderAnalysis(analysis) {
 	const resultRows = document.querySelector("#result-students");
 	resultRows.replaceChildren();
 	studentSearchInput.value = "";
+	nearPassFilter.checked = false;
 	studentSearchInput.disabled = analysis.students.length === 0;
+	nearPassFilter.disabled = analysis.students.length === 0;
+	selectedPassMark = Number(analysis.pass_mark);
 	studentSearchStatus.textContent = "";
 	studentSearchStatus.hidden = true;
 	if (analysis.students.length === 0) {
@@ -185,16 +190,19 @@ function filterResultStudents() {
 	let visibleCount = 0;
 
 	rows.forEach((row) => {
-		const matches = matchesStudentName(row.cells[0].textContent, query);
+		const matches = matchesStudentFilters({
+			name: row.cells[0].textContent,
+			marks: row.cells[1].textContent,
+		}, query, nearPassFilter.checked, selectedPassMark);
 		row.hidden = !matches;
 		if (matches) {
 			visibleCount += 1;
 		}
 	});
 
-	const noMatches = query !== "" && rows.length > 0 && visibleCount === 0;
-	studentSearchStatus.textContent = noMatches ? `No students match "${query}".` : "";
-	studentSearchStatus.hidden = !noMatches;
+	const filterMessage = studentFilterStatus(query, nearPassFilter.checked, visibleCount, rows.length);
+	studentSearchStatus.textContent = filterMessage;
+	studentSearchStatus.hidden = filterMessage === "";
 }
 
 async function loadAnalysis(analysisId) {
@@ -294,6 +302,7 @@ document.querySelector("#add-student").addEventListener("click", () => {
 });
 
 studentSearchInput.addEventListener("input", filterResultStudents);
+nearPassFilter.addEventListener("change", filterResultStudents);
 
 form.addEventListener("click", (event) => {
 	const removeButton = event.target.closest(".remove-button");
