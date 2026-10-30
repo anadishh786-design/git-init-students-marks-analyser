@@ -25,3 +25,6 @@ jobs:
 
       - name: Run dashboard search tests
         run: node --test test_dashboard_search.js
+
+      - name: Run dashboard filter integration test
+        run: node --test test_dashboard_filter.js
