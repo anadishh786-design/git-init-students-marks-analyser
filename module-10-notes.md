@@ -27,3 +27,9 @@ Both temporary mistakes were restored before committing.
 AI assistance was used to inspect the code, write the dashboard test and notes, and run the requested temporary mutation checks.
 
 If every test passes, we can confidently claim that the checked behaviors match their tested expectations for the cases and environment covered. We still need to check untested behavior, real browser rendering and interaction, and integration conditions that the tests do not model.
+
+## Browser demonstration attempt
+
+Prepared a separate local demo database at `instance/module10-demo.db` with analysis ID 1, saved threshold 60, and Asha (55), Arjun (58), Aria (59.9), Ben (54.9), and Bea (60). The Flask server returned HTTP 200 from `/health`; `/analyses/1` returned all five records and the saved threshold of 60. This confirms the demo data is ready.
+
+I attempted to open the dashboard in Chrome, but the computer-use session exited before I could inspect or operate the page (`trusted Node process exited unexpectedly`). Therefore I did not observe the requested filter/search sequence in a real browser, and no screen recording is attached. The UI sequence and recording still need to be captured manually at `http://127.0.0.1:5000/` while the local server is running. The scripted dashboard test passes, but it is not a substitute for that browser demonstration.
