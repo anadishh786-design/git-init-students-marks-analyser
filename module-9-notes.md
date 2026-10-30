@@ -12,9 +12,15 @@ Name search and the checkbox combine with AND. Clearing the name query while the
 
 ## Short browser demonstration
 
-Open an analysis saved with threshold 60 and students Alex (54.9), Asha (55), Arjun (58), Aria (59.9), and Ben (60). Check the new control: Asha, Arjun, and Aria remain. Search `ar` with the control on: only Arjun and Aria remain. Clear the search: all three near-pass students return. Turn the control off: all five return. While viewing this analysis, change the new-analysis form threshold to 90; the selected analysis still displays and filters by its saved threshold of 60.
+Open an analysis saved with threshold 60 and students Asha (55), Arjun (58), Aria (59.9), Ben (54.9), and Bea (60). Check the new control: Asha, Arjun, and Aria remain. Search `ar` with the control on: only Arjun and Aria remain. Clear the search, then turn the control off: all five return. Re-enable it and change the new-analysis form threshold to 90; the selected analysis still filters by its saved threshold of 60.
 
-This is the reproducible browser demonstration sequence. An updated GIF recording is not included: Chrome's local remote-control session did not respond to page commands in this environment.
+This is the reproducible browser demonstration sequence.
+
+## Latest browser demonstration attempt
+
+I launched Chrome at the local dashboard. The dashboard API returned HTTP 200 from `/health`; `GET /analyses/1` returned the prepared saved analysis at threshold 60 with Asha (55), Arjun (58), Aria (59.9), Ben (54.9), and Bea (60). These are the data loaded for the requested demonstration.
+
+The computer-use and Node browser-control sessions both exited during startup, so I could not inspect the rendered page or perform the checkbox and search interactions. I did not observe any of the requested visible filter states, and no screen recording is attached. The browser interaction and recording remain to be done manually at `http://127.0.0.1:5000/` while the local server is running.
 
 ## Expected and actual results
 
